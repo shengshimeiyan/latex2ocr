@@ -2,7 +2,7 @@
 ### 介绍
 
 **轻量级开源公式 OCR 小工具：调用大模型一键识别公式图片，并转换为 LaTeX 格式。**
-基于 https://github.com/QingchenWait/QC-Formula  修改
+基于 https://github.com/QingchenWait/QC-Formula  修改，支持DEEPSEEK-VL2，GEMINI，OPENAI的大模型，后两个需要魔法。
 - 支持从 **电脑本地** 导入公式图片；（后续版本将支持直接从网页导入图片）
 - 公式图片支持 **.png** / **.jpg** / **.bmp**，大小为 **4M** 以内均可；
 - 支持**印刷体**及**手写体**，前者识别效果更佳。
@@ -45,7 +45,7 @@ API 的获取方法如下：
 
 #### 2.2 将获取的 API 填入软件
 
-- 打开main_v105.py，搜索“api_key”，填入对应的api。
+- 打开main_v105.py，找到266，301，339行的“api_key”，任选一个，填入对应的api。
 
 - 运行代码 。
 
