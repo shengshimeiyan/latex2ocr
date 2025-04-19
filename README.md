@@ -17,7 +17,7 @@ deepseek-vl2 api申请，注册送14元:https://cloud.siliconflow.cn/models
 
 google gemini（需要挂t）:https://aistudio.google.com/
 
-GPT：[openai.com](https://openai.com/index/openai-api/)
+GPT（挂t）：[openai.com](https://openai.com/index/openai-api/)
 
 本软件调用了 ```讯飞``` 的 API（后续有望增加更多源，以提高准确率），目前的免费额度为 500次 / 天，可以满足个人用户的使用需求。
 
