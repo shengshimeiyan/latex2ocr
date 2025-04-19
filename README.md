@@ -2,7 +2,7 @@
 ### 介绍
 
 **轻量级开源公式 OCR 小工具：调用大模型一键识别公式图片，并转换为 LaTeX 格式。**
-基于https://github.com/QingchenWait/QC-Formula修改
+基于 https://github.com/QingchenWait/QC-Formula  修改
 - 支持从 **电脑本地** 导入公式图片；（后续版本将支持直接从网页导入图片）
 - 公式图片支持 **.png** / **.jpg** / **.bmp**，大小为 **4M** 以内均可；
 - 支持**印刷体**及**手写体**，前者识别效果更佳。
@@ -14,7 +14,9 @@
 ### 2 使用教程
 #### 2.1 获取 API（必需）
 deepseek-vl2 api申请，注册送14元:https://cloud.siliconflow.cn/models
+
 google gemini（需要挂t）:https://aistudio.google.com/
+
 GPT：[openai.com](https://openai.com/index/openai-api/)
 
 本软件调用了 ```讯飞``` 的 API（后续有望增加更多源，以提高准确率），目前的免费额度为 500次 / 天，可以满足个人用户的使用需求。
