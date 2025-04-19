@@ -263,7 +263,7 @@ class MainWindow(QMainWindow):
         try:
             # 获取API Key
             # api_key = self.conf.get('API_Gemini', 'APIKey', fallback='')
-            api_key = ""
+            api_key = ""  #填入siliconflow硅基流动api，不挂t，免费送14元。
             base_url = "https://api.siliconflow.cn/v1"
             if not api_key:
                 raise ValueError("请先配置DeepSeek-VL2 API Key")
@@ -298,7 +298,7 @@ class MainWindow(QMainWindow):
         try:
             # 获取API Key
             # api_key = self.conf.get('API_Gemini', 'APIKey', fallback='')
-            api_key = ""
+            api_key = ""  #填入Google AI Studio申请的API（挂t），免费
             if not api_key:
                 raise ValueError("请先配置Gemini API Key")
 
@@ -336,7 +336,7 @@ class MainWindow(QMainWindow):
             # 获取 API Key 和自定义 API 地址
             # api_key = self.conf.get('API_GPT', 'APIKey', fallback='')
             # api_base = self.conf.get('API_GPT', 'APIBase', fallback=None)  # 读取自定义 API 地址
-            api_key = f"sk-xxx"
+            api_key = f"sk-xxx"   #填入OPENAI API（挂t），要充钱。
             # api_base_url = f"https://api.chatanywhere.tech"
 
             if not api_key:
