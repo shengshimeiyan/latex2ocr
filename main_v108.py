@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import configparser
+import platform
 
 import pyperclip
 from PIL import ImageGrab
@@ -333,6 +334,10 @@ class MainWindow(QMainWindow):
         self.ui.recognize_button.clicked.connect(self.recognize_formula)
         self.ui.copy_button.clicked.connect(self.copy_text)
 
+        # 绑定关于菜单事件
+        self.ui.helpAction.triggered.connect(self.show_help)
+        self.ui.contactAction.triggered.connect(self.show_contact)
+
         self.clipboard_monitor = ClipboardMonitor(self.process_screenshot)
 
         # 初始化配置
@@ -381,16 +386,19 @@ class MainWindow(QMainWindow):
         self.update_pixmaps()
 
     def formula2img(self, str_latex, out_file, img_size=(5, 3), font_size=22):
-        """将LaTeX公式渲染为图片文件"""
+        """将LaTeX公式渲染为图片文件
+
+        优先使用 matplotlib 的 mathtext 渲染，若失败则直接显示纯文本。
+        """
         try:
             str_latex = str_latex.strip().strip('$$')
-            str_latex = f"${str_latex}$"
+            str_latex_wrapped = f"${str_latex}$"
 
             fig = plt.figure(figsize=img_size)
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
 
-            ax.text(0.5, 0.5, str_latex, fontsize=font_size,
+            ax.text(0.5, 0.5, str_latex_wrapped, fontsize=font_size,
                     verticalalignment='center', horizontalalignment='center')
 
             plt.savefig(
@@ -403,32 +411,78 @@ class MainWindow(QMainWindow):
             plt.close(fig)
 
             self.latex_pixmap = QPixmap(out_file)
+            # 检查渲染结果是否有效（matplotlib 渲染失败时可能输出空白图片）
+            if self.latex_pixmap.width() <= 1 or self.latex_pixmap.height() <= 1:
+                raise ValueError("渲染结果为空白图片")
             self.ui.latexLabel.setAlignment(Qt.AlignCenter)
             self.update_pixmaps()
 
         except Exception as e:
-            print(f"LaTeX 渲染失败: {e}")
+            print(f"LaTeX 渲染失败（{e}），回退为纯文本显示")
+            plt.close('all')
             self.latex_pixmap = None
-            self.ui.latexLabel.setText(f"LaTeX 渲染失败:\n{str_latex}")
+            self.ui.latexLabel.setText(str_latex)
+            self.ui.latexLabel.setAlignment(Qt.AlignCenter)
             self.update_pixmaps()
 
     def upload_image(self):
-        """处理用户上传图片操作"""
+        """处理用户上传图片操作，包含文件校验"""
         path = QFileDialog.getOpenFileName(self, "选择文件", ".", "公式图片 (*.png *.bmp *.jpg)")
 
         self.img_path = path[0]
-        if self.img_path:
-            self.load_image(self.img_path)
+        if not self.img_path:
+            return
+
+        # 校验文件大小（4MB 限制）
+        try:
+            file_size = os.path.getsize(self.img_path)
+            if file_size > 4 * 1024 * 1024:
+                QMessageBox.warning(
+                    self, "提示",
+                    f"图片大小为 {file_size / 1024 / 1024:.1f}MB，超过 4MB 限制。\n"
+                    "请压缩图片后重试。"
+                )
+                self.img_path = None
+                return
+        except OSError:
+            QMessageBox.warning(self, "提示", "无法读取图片文件，请检查路径。")
+            self.img_path = None
+            return
+
+        # 校验是否为有效图片
+        try:
+            from PIL import Image
+            with Image.open(self.img_path) as img:
+                img.verify()
+        except Exception:
+            QMessageBox.warning(self, "提示", "无法识别该文件为有效图片，请重新选择。")
+            self.img_path = None
+            return
+
+        self.load_image(self.img_path)
 
     def capture_screenshot(self):
-        """Windows截图功能实现（调用现代截图工具）"""
+        """跨平台截图功能，最小化窗口后调用系统截图工具"""
         try:
             self.setWindowState(QtCore.Qt.WindowMinimized)
-            subprocess.run(
-                'start ms-screenclip:',
-                shell=True,
-                check=False
-            )
+            current_os = platform.system()
+
+            if current_os == "Windows":
+                subprocess.run('start ms-screenclip:', shell=True, check=False)
+            elif current_os == "Darwin":  # macOS
+                subprocess.run(['screencapture', '-i', '-c'], check=False)
+            else:  # Linux
+                # 尝试使用 gnome-screenshot，如不可用则提示用户
+                try:
+                    subprocess.run(['gnome-screenshot', '-a'], check=False)
+                except FileNotFoundError:
+                    QMessageBox.warning(
+                        self, "提示",
+                        "未找到截图工具，请安装 gnome-screenshot\n"
+                        "或使用系统快捷键截图后粘贴。"
+                    )
+                    self.show()
+                    return
 
         except (OSError, RuntimeError) as e:
             QMessageBox.critical(self, "错误", f"截图工具启动失败: {str(e)}")
@@ -457,6 +511,27 @@ class MainWindow(QMainWindow):
             self.show()
             self.activateWindow()
             self.set_ui_enabled(True)
+
+    def show_help(self):
+        """显示帮助文档"""
+        QMessageBox.information(
+            self, "帮助文档",
+            "latex2ocr 使用说明\n\n"
+            "1. 点击「上传文件」选择本地公式图片\n"
+            "2. 或点击「截屏识别」截取屏幕公式\n"
+            "3. 在下拉框中选择识别模型\n"
+            "4. 点击「识别公式」获取 LaTeX 结果\n"
+            "5. 结果会自动复制到剪贴板\n\n"
+            "首次使用请先点击「设置」配置 API Key。"
+        )
+
+    def show_contact(self):
+        """显示联系方式"""
+        QMessageBox.information(
+            self, "联系我们",
+            "项目主页: https://github.com/shengshimeiyan/latex2ocr\n\n"
+            "如遇问题，请在 GitHub 提交 Issue。"
+        )
 
     def open_settings(self):
         """打开设置对话框，配置API参数和模型选择"""

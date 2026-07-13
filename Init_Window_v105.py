@@ -63,8 +63,8 @@ class MainWindowUI(object):
         # 关于按钮（带下拉菜单）
         self.aboutButton = QtWidgets.QPushButton("关于", self.centralwidget)
         self.aboutMenu = QtWidgets.QMenu(self.aboutButton)
-        self.aboutMenu.addAction("帮助文档")
-        self.aboutMenu.addAction("联系我们")
+        self.helpAction = self.aboutMenu.addAction("帮助文档")
+        self.contactAction = self.aboutMenu.addAction("联系我们")
         self.aboutButton.setMenu(self.aboutMenu)
         self.top_button_layout.addWidget(self.aboutButton)
 
