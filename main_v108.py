@@ -72,7 +72,7 @@ class OcrWorker(QObject):
             if self.model_name == "Google Gemini":
                 section = 'API_Gemini'
                 api_key = self.conf.get(section, 'APIKey', fallback='')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='gemini-1.5-flash')
+                model_name_conf = self.conf.get(section, 'ModelName', fallback='gemini-2.0-flash')
                 if not api_key:
                     raise ValueError("请先配置Gemini API Key")
                 recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name_conf)
@@ -91,7 +91,7 @@ class OcrWorker(QObject):
             elif self.model_name == "DeepSeek":
                 section = 'API_DeepSeek'
                 api_key = self.conf.get(section, 'APIKey', fallback='')
-                base_url = self.conf.get(section, 'APIBase', fallback='https.api.siliconflow.cn/v1')
+                base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
                 model_name_conf = self.conf.get(section, 'ModelName', fallback='deepseek-ai/deepseek-vl2')
                 if not api_key:
                     raise ValueError("请先配置DeepSeek-VL2 API Key")
@@ -101,12 +101,12 @@ class OcrWorker(QObject):
             elif self.model_name == "Qwen3-VL":
                 section = 'API_QWen'
                 api_key = self.conf.get(section, 'APIKey', fallback='')
-                base_url = self.conf.get(section, 'APIBase', fallback='https.api.siliconflow.cn/v1')
+                base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
                 model_name_conf = self.conf.get(section, 'ModelName', fallback='Qwen/Qwen3-VL-32B-Instruct')
                 if not api_key:
                     raise ValueError("请先配置 QWen API Key")
                 recognizer = DeepSeekFormulaRecognizer(api_key, base_url, model_name=model_name_conf)
-                result = recognizer.recognize_formula_qwen3(self.img_path)
+                result = recognizer.recognize_formula(self.img_path)
 
             elif self.model_name == "讯飞API":
                 # TODO: 在此处添加你的讯飞 API 调用和解析逻辑

@@ -9,10 +9,11 @@ from io import BytesIO
 from ratelimit import limits, sleep_and_retry
 
 class GeminiFormulaRecognizer:
-    def __init__(self, api_key=None):
+    def __init__(self, api_key=None, model_name=None):
         self.conf = configparser.ConfigParser()
         self.conf.read(os.path.join(os.path.dirname(__file__), 'config.ini'), encoding="utf-8-sig")
         self.api_key = api_key or self.conf.get('API_Gemini', 'APIKey', fallback='')
+        self.model_name = model_name or 'gemini-2.0-flash'
         self.model = None
         genai.configure(api_key=self.api_key)
 
@@ -20,7 +21,7 @@ class GeminiFormulaRecognizer:
         """Initialize Gemini model with safety settings"""
         try:
             self.model = genai.GenerativeModel(
-                'gemini-2.0-flash',
+                self.model_name,
                 safety_settings={
                     'HARM_CATEGORY_HARASSMENT': 'block_none',
                     'HARM_CATEGORY_HATE_SPEECH': 'block_none',
@@ -85,9 +86,10 @@ F &= ma
             raise ValueError("Invalid API response format")
 
 class DeepSeekFormulaRecognizer:
-    def __init__(self, api_key, base_url=None):
+    def __init__(self, api_key, base_url=None, model_name=None):
         self.api_key = api_key
         self.base_url = base_url
+        self.model_name = model_name or 'deepseek-ai/deepseek-vl2'
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=self.base_url if self.base_url else None  # 设置自定义 API 地址
@@ -124,7 +126,7 @@ class DeepSeekFormulaRecognizer:
 
             # API调用（非流式）
             response = self.client.chat.completions.create(
-                model="deepseek-ai/deepseek-vl2",
+                model=self.model_name,
                 messages=[
                     {
                         "role": "user",
@@ -152,14 +154,16 @@ class DeepSeekFormulaRecognizer:
 
 
 class GPTFormulaRecognizer:
-    def __init__(self, api_key, base_url=None):
+    def __init__(self, api_key, base_url=None, model_name=None):
         """
-        初始化 GPT-4.1-mini 模型识别器
+        初始化 GPT 模型识别器
         :param api_key: API Key
         :param base_url: 自定义 API 地址（可选）
+        :param model_name: 模型名称（可选，默认 gpt-4o-mini）
         """
         self.api_key = api_key
         self.base_url = base_url
+        self.model_name = model_name or 'gpt-4o-mini'
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=self.base_url if self.base_url else None  # 设置 API 地址
@@ -178,24 +182,35 @@ class GPTFormulaRecognizer:
 
     def recognize_formula(self, image_path):
         """
-        使用 GPT-4.1-mini 模型识别图片中的公式并转换为 LaTeX
+        使用 GPT 模型识别图片中的公式并转换为 LaTeX
         :param image_path: 图片路径
         :return: 识别后的 LaTeX 公式
         """
+        prompt = """请严格按以下要求执行：
+1. 识别图片中的数学公式
+2. 返回标准LaTeX代码（不含任何额外符号）
+3. 如果存在多个公式，用换行分隔
+4. 如果非数学内容，返回'ERROR: Non-math content detected'
+
+示例正确响应：
+\\begin{align}
+E &= mc^2 \\\\
+F &= ma
+\\end{align}"""
         try:
             # 将图片编码为 Base64
             base64_image = self.encode_image_to_base64(image_path)
 
-            # 新版API调用方式
+            # API调用
             response = self.client.chat.completions.create(
-                model="gpt-4.1-mini",
+                model=self.model_name,
                 messages=[
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": "请识别图片中的数学公式，并返回标准的 LaTeX 代码。"
+                                "text": prompt
                             },
                             {
                                 "type": "image_url",
@@ -213,4 +228,4 @@ class GPTFormulaRecognizer:
             return result
 
         except Exception as e:
-            raise RuntimeError(f"GPT-4.1-mini 识别错误: {str(e)}")
+            raise RuntimeError(f"GPT ({self.model_name}) 识别错误: {str(e)}")

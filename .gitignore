@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Runtime temp files
+screenshot.png
+temp_latex.png
+temp.png
+
+# Config with user secrets (keep template only)
+# config.ini
+
+# OS
+.DS_Store
+Thumbs.db
