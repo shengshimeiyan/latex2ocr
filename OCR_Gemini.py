@@ -1,5 +1,6 @@
 # OCR_Gemini.py
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 import os
 from openai import OpenAI
 import base64
@@ -36,46 +37,33 @@ class GeminiFormulaRecognizer:
         self.conf.read(os.path.join(os.path.dirname(__file__), 'config.ini'), encoding="utf-8-sig")
         self.api_key = api_key or self.conf.get('API_Gemini', 'APIKey', fallback='')
         self.model_name = model_name or 'gemini-2.0-flash'
-        self.model = None
+        self.client = None
         if self.api_key:
-            genai.configure(api_key=self.api_key)
+            self.client = genai.Client(api_key=self.api_key)
 
     def test_connection(self):
         """测试 API 连接是否正常"""
         try:
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_name)
-            response = model.generate_content("Hello")
+            if not self.client:
+                self.client = genai.Client(api_key=self.api_key)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents="Hello",
+            )
             if response.text:
                 return True
             raise RuntimeError("API 返回空响应")
         except Exception as e:
             raise RuntimeError(f"连接测试失败: {str(e)}")
 
-    def initialize_model(self):
-        """Initialize Gemini model with safety settings"""
-        try:
-            self.model = genai.GenerativeModel(
-                self.model_name,
-                safety_settings={
-                    'HARM_CATEGORY_HARASSMENT': 'block_none',
-                    'HARM_CATEGORY_HATE_SPEECH': 'block_none',
-                    'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'block_none',
-                    'HARM_CATEGORY_DANGEROUS_CONTENT': 'block_none'
-                }
-            )
-            return True
-        except Exception as e:
-            raise RuntimeError(f"Model initialization failed: {str(e)}")
-
     @sleep_and_retry
     @limits(calls=10, period=60)
     def recognize_formula(self, image_path):
         """Perform formula recognition with image preprocessing"""
-        if not self.model:
-            self.initialize_model()
-
         try:
+            if not self.client:
+                self.client = genai.Client(api_key=self.api_key)
+
             # Preprocess image
             print("preparing picture...")
             with Image.open(image_path) as img:
@@ -84,12 +72,23 @@ class GeminiFormulaRecognizer:
 
                 buffered = BytesIO()
                 img.save(buffered, format="PNG", optimize=True)
-                image_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                image_bytes = buffered.getvalue()
 
-            response = self.model.generate_content([
-                FORMULA_RECOGNITION_PROMPT,
-                {"mime_type": "image/png", "data": image_data}
-            ])
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=[
+                    FORMULA_RECOGNITION_PROMPT,
+                    genai_types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
+                ],
+                config=genai_types.GenerateContentConfig(
+                    safety_settings=[
+                        genai_types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                        genai_types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                        genai_types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                        genai_types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                    ],
+                ),
+            )
             return self._process_response(response)
 
         except Exception as e:

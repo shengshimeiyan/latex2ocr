@@ -5,6 +5,6 @@ pyautogui>=0.9
 psutil>=5.8
 pygetwindow>=0.0.9
 matplotlib>=3.3
-google-generativeai>=0.3
+google-genai>=1.0
 openai>=1.0
 ratelimit>=2.1
