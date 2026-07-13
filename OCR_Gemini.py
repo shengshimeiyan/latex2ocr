@@ -15,7 +15,20 @@ class GeminiFormulaRecognizer:
         self.api_key = api_key or self.conf.get('API_Gemini', 'APIKey', fallback='')
         self.model_name = model_name or 'gemini-2.0-flash'
         self.model = None
-        genai.configure(api_key=self.api_key)
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+
+    def test_connection(self):
+        """测试 API 连接是否正常"""
+        try:
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel(self.model_name)
+            response = model.generate_content("Hello")
+            if response.text:
+                return True
+            raise RuntimeError("API 返回空响应")
+        except Exception as e:
+            raise RuntimeError(f"连接测试失败: {str(e)}")
 
     def initialize_model(self):
         """Initialize Gemini model with safety settings"""
@@ -95,6 +108,20 @@ class DeepSeekFormulaRecognizer:
             base_url=self.base_url if self.base_url else None  # 设置自定义 API 地址
         )
 
+    def test_connection(self):
+        """测试 API 连接是否正常"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            if response.choices:
+                return True
+            raise RuntimeError("API 返回空响应")
+        except Exception as e:
+            raise RuntimeError(f"连接测试失败: {str(e)}")
+
     def encode_image_to_base64(self, image_path):
         """
         将图片编码为 Base64 字符串
@@ -168,6 +195,20 @@ class GPTFormulaRecognizer:
             api_key=self.api_key,
             base_url=self.base_url if self.base_url else None  # 设置 API 地址
         )
+
+    def test_connection(self):
+        """测试 API 连接是否正常"""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            if response.choices:
+                return True
+            raise RuntimeError("API 返回空响应")
+        except Exception as e:
+            raise RuntimeError(f"连接测试失败: {str(e)}")
 
     def encode_image_to_base64(self, image_path):
         """

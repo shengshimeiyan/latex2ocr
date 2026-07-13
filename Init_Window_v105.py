@@ -55,12 +55,8 @@ class MainWindowUI(object):
         # size_policy.setHeightForWidth(mainwindow.sizePolicy().hasHeightForWidth()) #根据宽带调整高度
         # mainwindow.setSizePolicy(size_policy) # 应用窗口大小策略
 
-        # 设置窗口的最小和最大尺寸
+        # 设置窗口的最小尺寸
         mainwindow.setMinimumSize(QSize(800, 600))
-        mainwindow.setMaximumSize(QSize(800, 600))
-
-        # 设置窗口的透明度为1.25
-        mainwindow.setWindowOpacity(1.25)
 
         # 设置窗口的文档模式为False
         mainwindow.setDocumentMode(False)
@@ -118,7 +114,7 @@ class MainWindowUI(object):
 
         # 模型选择下拉列表
         self.model_selector = QtWidgets.QComboBox(self.centralwidget)
-        self.model_selector.addItems(["DeepSeek", "Google Gemini", "GPT", "讯飞API"])
+        self.model_selector.addItems(["DeepSeek", "Google Gemini", "GPT", "Qwen3-VL", "讯飞API"])
         self.bottom_button_layout.addWidget(self.model_selector)
 
         # 识别公式按钮

@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
             self.show()
             self.activateWindow()
 
-            self.img_path = "screenshot.png"
+            self.img_path = os.path.join(BASE_DIR, "screenshot.png")
             image.save(self.img_path, "PNG")
 
             self.load_image(self.img_path)
@@ -323,7 +323,7 @@ class MainWindow(QMainWindow):
                         return
 
                     if recognizer:
-                        recognizer._call_api(test_text)
+                        recognizer.test_connection()
                     else:
                         raise Exception("Recognizer could not be initialized.")
 
@@ -555,7 +555,7 @@ class MainWindow(QMainWindow):
         self.ui.Copy_Status_Label.setText("识别成功，结果已自动复制！")
 
         print("正在生成 LaTeX 公式图片...")
-        self.formula2img(result_latex, "temp_latex.png")
+        self.formula2img(result_latex, os.path.join(BASE_DIR, "temp_latex.png"))
 
         self.set_ui_enabled(True)
         self.activateWindow()
