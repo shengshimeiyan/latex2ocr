@@ -8,6 +8,28 @@ from PIL import Image, ImageFilter
 from io import BytesIO
 from ratelimit import limits, sleep_and_retry
 
+# 统一的公式识别 prompt
+FORMULA_RECOGNITION_PROMPT = """请严格按以下要求执行：
+1. 识别图片中的数学公式
+2. 返回标准LaTeX代码（不含任何额外符号）
+3. 如果存在多个公式，用换行分隔
+4. 如果非数学内容，返回'ERROR: Non-math content detected'
+
+示例正确响应：
+\\begin{align}
+E &= mc^2 \\\\
+F &= ma
+\\end{align}"""
+
+
+def encode_image_to_base64(image_path):
+    """将图片编码为 Base64 字符串"""
+    with Image.open(image_path) as img:
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+
 class GeminiFormulaRecognizer:
     def __init__(self, api_key=None, model_name=None):
         self.conf = configparser.ConfigParser()
@@ -64,20 +86,10 @@ class GeminiFormulaRecognizer:
                 img.save(buffered, format="PNG", optimize=True)
                 image_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-            # Generate prompt
-            prompt = """请严格按以下要求执行：
-1. 识别图片中的数学公式
-2. 返回标准LaTeX代码（不含任何额外符号）
-3. 如果存在多个公式，用换行分隔
-4. 如果非数学内容，返回'ERROR: Non-math content detected'
-
-示例正确响应：
-\\begin{align}
-E &= mc^2 \\\\
-F &= ma
-\\end{align}"""
-
-            response = self.model.generate_content([prompt, {"mime_type": "image/png", "data": image_data}])
+            response = self.model.generate_content([
+                FORMULA_RECOGNITION_PROMPT,
+                {"mime_type": "image/png", "data": image_data}
+            ])
             return self._process_response(response)
 
         except Exception as e:
@@ -98,14 +110,17 @@ F &= ma
         except AttributeError:
             raise ValueError("Invalid API response format")
 
-class DeepSeekFormulaRecognizer:
-    def __init__(self, api_key, base_url=None, model_name=None):
+
+class OpenAICompatibleRecognizer:
+    """OpenAI 兼容接口的公式识别器基类，供 DeepSeek / GPT / Qwen 等复用"""
+
+    def __init__(self, api_key, base_url=None, model_name=None, default_model='gpt-4o-mini'):
         self.api_key = api_key
         self.base_url = base_url
-        self.model_name = model_name or 'deepseek-ai/deepseek-vl2'
+        self.model_name = model_name or default_model
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url=self.base_url if self.base_url else None  # 设置自定义 API 地址
+            base_url=self.base_url if self.base_url else None
         )
 
     def test_connection(self):
@@ -122,43 +137,18 @@ class DeepSeekFormulaRecognizer:
         except Exception as e:
             raise RuntimeError(f"连接测试失败: {str(e)}")
 
-    def encode_image_to_base64(self, image_path):
-        """
-        将图片编码为 Base64 字符串
-        :param image_path: 图片路径
-        :return: Base64 编码的图片字符串
-        """
-        with Image.open(image_path) as img:
-            buffered = BytesIO()
-            img.save(buffered, format="PNG")
-            return base64.b64encode(buffered.getvalue()).decode("utf-8")
-
     def recognize_formula(self, image_path):
-        """
-        使用 DeepSeek-VL 模型识别图片中的公式并转换为 LaTeX
-        :param image_path: 图片路径
-        :return: 识别后的 LaTeX 公式
-        """
-        prompt ="""请严格按以下要求执行：
-1. 识别图片中的数学公式
-2. 返回标准LaTeX代码（不含任何额外符号）
-3. 如果存在多个公式，用换行分隔
-4. 如果非数学内容，返回'ERROR: Non-math content detected'
-
-示例正确响应：
-\mathbb{P}\left(y_i\mid f(c_i)_{y_i}=\beta_i\right)=\beta_i,\quad\forall\beta_i\in\Delta^{|\mathcal{Y}_i|}."""
+        """识别图片中的公式并转换为 LaTeX"""
         try:
-            # 将图片编码为 Base64
-            base64_image = self.encode_image_to_base64(image_path)
+            base64_image = encode_image_to_base64(image_path)
 
-            # API调用（非流式）
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": prompt},
+                            {"type": "text", "text": FORMULA_RECOGNITION_PROMPT},
                             {
                                 "type": "image_url",
                                 "image_url": {"url": f"data:image/png;base64,{base64_image}"}
@@ -169,104 +159,35 @@ class DeepSeekFormulaRecognizer:
                 temperature=0.2,
                 top_p=0.7,
                 max_tokens=1024,
-                stream=False  # 非流式（或者直接移除）
+                stream=False
             )
 
-            # 获取响应结果（对象属性方式）
             result = response.choices[0].message.content
             return result
 
         except Exception as e:
-            raise RuntimeError(f"DeepSeek-VL 识别错误: {str(e)}")
+            raise RuntimeError(f"({self.model_name}) 识别错误: {str(e)}")
 
 
-class GPTFormulaRecognizer:
+class DeepSeekFormulaRecognizer(OpenAICompatibleRecognizer):
+    """DeepSeek-VL2 公式识别器"""
+
     def __init__(self, api_key, base_url=None, model_name=None):
-        """
-        初始化 GPT 模型识别器
-        :param api_key: API Key
-        :param base_url: 自定义 API 地址（可选）
-        :param model_name: 模型名称（可选，默认 gpt-4o-mini）
-        """
-        self.api_key = api_key
-        self.base_url = base_url
-        self.model_name = model_name or 'gpt-4o-mini'
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url if self.base_url else None  # 设置 API 地址
+        super().__init__(
+            api_key=api_key,
+            base_url=base_url,
+            model_name=model_name,
+            default_model='deepseek-ai/deepseek-vl2'
         )
 
-    def test_connection(self):
-        """测试 API 连接是否正常"""
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
-            if response.choices:
-                return True
-            raise RuntimeError("API 返回空响应")
-        except Exception as e:
-            raise RuntimeError(f"连接测试失败: {str(e)}")
 
-    def encode_image_to_base64(self, image_path):
-        """
-        将图片编码为 Base64 字符串
-        :param image_path: 图片路径
-        :return: Base64 编码的图片字符串
-        """
-        with Image.open(image_path) as img:
-            buffered = BytesIO()
-            img.save(buffered, format="PNG")
-            return base64.b64encode(buffered.getvalue()).decode("utf-8")
+class GPTFormulaRecognizer(OpenAICompatibleRecognizer):
+    """GPT 公式识别器"""
 
-    def recognize_formula(self, image_path):
-        """
-        使用 GPT 模型识别图片中的公式并转换为 LaTeX
-        :param image_path: 图片路径
-        :return: 识别后的 LaTeX 公式
-        """
-        prompt = """请严格按以下要求执行：
-1. 识别图片中的数学公式
-2. 返回标准LaTeX代码（不含任何额外符号）
-3. 如果存在多个公式，用换行分隔
-4. 如果非数学内容，返回'ERROR: Non-math content detected'
-
-示例正确响应：
-\\begin{align}
-E &= mc^2 \\\\
-F &= ma
-\\end{align}"""
-        try:
-            # 将图片编码为 Base64
-            base64_image = self.encode_image_to_base64(image_path)
-
-            # API调用
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{base64_image}"
-                                }
-                            }
-                        ]
-                    }
-                ]
-            )
-
-            # 提取识别结果
-            result = response.choices[0].message.content
-            return result
-
-        except Exception as e:
-            raise RuntimeError(f"GPT ({self.model_name}) 识别错误: {str(e)}")
+    def __init__(self, api_key, base_url=None, model_name=None):
+        super().__init__(
+            api_key=api_key,
+            base_url=base_url,
+            model_name=model_name,
+            default_model='gpt-4o-mini'
+        )
