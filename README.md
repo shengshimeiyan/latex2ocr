@@ -100,7 +100,7 @@ pip install -r requirements.txt
 |------|------|
 | PyQt5 | GUI 界面 |
 | Pillow | 图片处理 |
-| google-generativeai | Gemini API |
+| google-genai | Gemini API |
 | openai | DeepSeek / GPT API（OpenAI 兼容） |
 | matplotlib | LaTeX 公式渲染为图片 |
 | pyperclip | 剪贴板操作 |
