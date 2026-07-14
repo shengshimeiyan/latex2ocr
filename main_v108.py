@@ -8,6 +8,7 @@ import pyperclip
 from PIL import ImageGrab
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QObject, QTimer, QThread, pyqtSignal
+from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QMessageBox, QSizePolicy,
@@ -635,6 +636,14 @@ class MainWindow(QMainWindow):
         edit_font = self.ui.plain_text_edit.font()
         edit_font.setPointSize(max(16, int(26 * scale)))
         self.ui.plain_text_edit.setFont(edit_font)
+
+        # 卡片标题字号（图片预览、公式预览、LaTeX代码）
+        header_size = max(12, int(16 * scale))
+        header_font = QtGui.QFont()
+        header_font.setPointSize(header_size)
+        header_font.setBold(True)
+        for header in self.findChildren(QtWidgets.QLabel, "section_header"):
+            header.setFont(header_font)
 
         # 状态标签字号
         status_size = max(14, int(25 * scale))

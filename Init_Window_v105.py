@@ -20,6 +20,16 @@ QWidget#centralwidget {
     background-color: #f5f6fa;
 }
 
+/* ---------- 卡片区域标题 ---------- */
+QLabel#section_header {
+    color: #8888aa;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}
+
 /* ---------- 顶部工具栏 ---------- */
 QFrame#toolbar {
     background-color: #ffffff;
@@ -329,7 +339,7 @@ class MainWindowUI(object):
         image_layout.setContentsMargins(4, 2, 4, 2)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
-        image_header.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; padding: 2px 8px; background: transparent; border: none;")
+        image_header.setObjectName("section_header")
         image_layout.addWidget(image_header)
 
         self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
@@ -347,7 +357,7 @@ class MainWindowUI(object):
         latex_layout.setContentsMargins(4, 2, 4, 2)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
-        latex_header.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; padding: 2px 8px; background: transparent; border: none;")
+        latex_header.setObjectName("section_header")
         latex_layout.addWidget(latex_header)
 
         self.latexWebView = QtWebEngineWidgets.QWebEngineView(latex_card)
@@ -375,7 +385,7 @@ class MainWindowUI(object):
         code_header_layout.setContentsMargins(8, 2, 8, 0)
 
         code_label = QtWidgets.QLabel("📝 LaTeX 代码", code_card)
-        code_label.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; background: transparent; border: none;")
+        code_label.setObjectName("section_header")
         code_header_layout.addWidget(code_label)
 
         code_header_layout.addStretch()
