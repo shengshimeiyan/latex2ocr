@@ -34,7 +34,7 @@ QPushButton {
     border: 1px solid #d8d8e3;
     border-radius: 8px;
     padding: 10px 24px;
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 500;
     min-height: 24px;
 }
@@ -59,7 +59,7 @@ QPushButton#screenshotButton {
     color: #ffffff;
     border: none;
     border-radius: 8px;
-    font-size: 19px;
+    font-size: 29px;
     font-weight: 600;
     padding: 12px 32px;
 }
@@ -78,7 +78,7 @@ QPushButton#recognize_button {
     color: #ffffff;
     border: none;
     border-radius: 8px;
-    font-size: 19px;
+    font-size: 29px;
     font-weight: 600;
     padding: 12px 32px;
 }
@@ -99,7 +99,7 @@ QComboBox {
     border-radius: 8px;
     padding: 10px 16px;
     min-width: 160px;
-    font-size: 16px;
+    font-size: 26px;
 }
 QComboBox:hover {
     border-color: #4f6ef7;
@@ -124,7 +124,7 @@ QComboBox QAbstractItemView {
     selection-color: #1a1a2e;
     outline: none;
     padding: 4px;
-    font-size: 16px;
+    font-size: 26px;
 }
 
 /* ---------- 卡片容器 ---------- */
@@ -140,14 +140,14 @@ QLabel#imageLabel {
     border: 2px dashed #d0d0dd;
     border-radius: 10px;
     color: #a0a0b8;
-    font-size: 18px;
+    font-size: 28px;
 }
 QLabel#latexLabel {
     background-color: #fafafc;
     border: 2px dashed #d0d0dd;
     border-radius: 10px;
     color: #a0a0b8;
-    font-size: 18px;
+    font-size: 28px;
 }
 
 /* ---------- 文本编辑框 ---------- */
@@ -158,14 +158,14 @@ QPlainTextEdit {
     border-radius: 10px;
     padding: 12px 16px;
     font-family: "Consolas", "Fira Code", monospace;
-    font-size: 18px;
+    font-size: 28px;
     selection-background-color: #dce0ff;
 }
 
 /* ---------- 状态标签 ---------- */
 QLabel#status_label {
     color: #4f6ef7;
-    font-size: 15px;
+    font-size: 25px;
     padding: 4px 8px;
 }
 
@@ -180,7 +180,7 @@ QPushButton#aboutButton {
     background-color: transparent;
     border: 1px solid transparent;
     color: #8888aa;
-    font-size: 18px;
+    font-size: 28px;
     padding: 8px 14px;
 }
 QPushButton#aboutButton:hover {
@@ -195,7 +195,7 @@ QPushButton#settingsButton {
     background-color: transparent;
     border: 1px solid transparent;
     color: #8888aa;
-    font-size: 16px;
+    font-size: 26px;
     padding: 8px 14px;
 }
 QPushButton#settingsButton:hover {
@@ -212,7 +212,7 @@ QMenu {
     border: 1px solid #e8e8ef;
     border-radius: 8px;
     padding: 6px;
-    font-size: 16px;
+    font-size: 26px;
 }
 QMenu::item {
     padding: 10px 28px;
@@ -328,7 +328,7 @@ class MainWindowUI(object):
         image_layout.setContentsMargins(4, 4, 4, 4)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
-        image_header.setStyleSheet("color: #8888aa; font-size: 16px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
+        image_header.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
         image_layout.addWidget(image_header)
 
         self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
@@ -346,7 +346,7 @@ class MainWindowUI(object):
         latex_layout.setContentsMargins(4, 4, 4, 4)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
-        latex_header.setStyleSheet("color: #8888aa; font-size: 16px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
+        latex_header.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
         latex_layout.addWidget(latex_header)
 
         self.latexLabel = QtWidgets.QLabel("识别结果将在此渲染", latex_card)
@@ -375,7 +375,7 @@ class MainWindowUI(object):
         code_header_layout.setContentsMargins(12, 8, 12, 0)
 
         code_label = QtWidgets.QLabel("📝 LaTeX 代码", code_card)
-        code_label.setStyleSheet("color: #8888aa; font-size: 16px; font-weight: 600; background: transparent; border: none;")
+        code_label.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; background: transparent; border: none;")
         code_header_layout.addWidget(code_label)
 
         code_header_layout.addStretch()
@@ -386,7 +386,7 @@ class MainWindowUI(object):
             QPushButton {
                 background-color: #ffffff; color: #8888aa;
                 border: 1px solid #d8d8e3; border-radius: 6px;
-                padding: 6px 16px; font-size: 15px; min-height: 16px;
+                padding: 6px 16px; font-size: 25px; min-height: 16px;
             }
             QPushButton:hover { background-color: #f0f0f8; color: #333344; }
         """)
@@ -399,7 +399,7 @@ class MainWindowUI(object):
         self.plain_text_edit.setMinimumHeight(90)
         font = QtGui.QFont()
         font.setFamily("Consolas")
-        font.setPointSize(14)
+        font.setPointSize(24)
         self.plain_text_edit.setFont(font)
         self.plain_text_edit.setPlainText("")
         code_layout.addWidget(self.plain_text_edit)

@@ -12,7 +12,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QMessageBox, QSizePolicy,
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QComboBox, QLabel, QHBoxLayout
+    QComboBox, QLabel, QHBoxLayout, QInputDialog
 )
 
 import pyautogui
@@ -191,7 +191,7 @@ class SettingsDialog(QDialog):
         }
         QLabel {
             color: #333344;
-            font-size: 15px;
+            font-size: 25px;
         }
         QLineEdit {
             background-color: #ffffff;
@@ -199,7 +199,7 @@ class SettingsDialog(QDialog):
             border: 1px solid #d8d8e3;
             border-radius: 8px;
             padding: 10px 14px;
-            font-size: 15px;
+            font-size: 25px;
             selection-background-color: #dce0ff;
         }
         QLineEdit:focus {
@@ -215,7 +215,7 @@ class SettingsDialog(QDialog):
             border-radius: 8px;
             padding: 10px 14px;
             min-width: 220px;
-            font-size: 15px;
+            font-size: 25px;
         }
         QComboBox:hover { border-color: #4f6ef7; }
         QComboBox::drop-down { border: none; width: 28px; }
@@ -229,11 +229,12 @@ class SettingsDialog(QDialog):
             border: 1px solid #d8d8e3; border-radius: 8px;
             selection-background-color: #eef0ff; selection-color: #1a1a2e;
             outline: none; padding: 4px;
+            font-size: 25px;
         }
         QPushButton {
             background-color: #ffffff; color: #333344;
             border: 1px solid #d8d8e3; border-radius: 8px;
-            padding: 10px 24px; font-size: 15px; font-weight: 500;
+            padding: 10px 24px; font-size: 25px; font-weight: 500;
         }
         QPushButton:hover { background-color: #f0f0f8; color: #1a1a2e; border-color: #b0b0cc; }
         QPushButton:pressed { background-color: #e8e8f0; }
@@ -271,23 +272,43 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout()
         form_layout = QFormLayout()
 
-        # 动态模型列表 — 从 config.ini 读取所有 API_ section
+        # 模型选择 + 添加/删除按钮
+        model_row = QHBoxLayout()
         self.model_combo = QComboBox()
-        self._section_names = []  # 保存 section 名，与 combo index 对应
+        self._section_names = []
         self._populate_model_combo()
+        model_row.addWidget(self.model_combo, stretch=1)
 
-        form_layout.addRow("配置对象:", self.model_combo)
+        add_btn = QPushButton("➕")
+        add_btn.setToolTip("添加自定义模型")
+        add_btn.setFixedWidth(44)
+        add_btn.clicked.connect(self._add_custom_model)
+        model_row.addWidget(add_btn)
+
+        del_btn = QPushButton("🗑")
+        del_btn.setToolTip("删除当前模型")
+        del_btn.setFixedWidth(44)
+        del_btn.setObjectName("del_btn")
+        del_btn.clicked.connect(self._delete_current_model)
+        model_row.addWidget(del_btn)
+
+        form_layout.addRow("配置对象:", model_row)
 
         self.api_base_edit = QLineEdit()
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.Password)
 
         self.model_name_edit = QLineEdit()
-        self.model_name_edit.setPlaceholderText("例如: gpt-4o-mini, gemini-2.5-flash")
+        self.model_name_edit.setPlaceholderText("例如: gpt-4o-mini, Qwen/Qwen3-VL-8B-Instruct")
+
+        self.recognizer_combo = QComboBox()
+        self.recognizer_combo.addItems(["openai", "gemini", "gpt", "ifly"])
+        self.recognizer_combo.setToolTip("openai = OpenAI兼容API (DeepSeek/Qwen/SiliconFlow等)\ngemini = Google Gemini API\ngpt = GPT专用\ndify = 讯飞API")
 
         form_layout.addRow("API地址:", self.api_base_edit)
         form_layout.addRow("API密钥:", self.api_key_edit)
         form_layout.addRow("模型名称:", self.model_name_edit)
+        form_layout.addRow("识别器类型:", self.recognizer_combo)
 
         self.load_settings()
 
@@ -352,10 +373,18 @@ class SettingsDialog(QDialog):
         api_base = self.parent.conf.get(section, 'APIBase', fallback='')
         api_key = self.parent.conf.get(section, 'APIKey', fallback='')
         model_name = self.parent.conf.get(section, 'ModelName', fallback='')
+        recognizer = self.parent.conf.get(section, 'Recognizer', fallback='openai').lower()
 
         self.api_base_edit.setText(api_base)
         self.api_key_edit.setText(api_key)
         self.model_name_edit.setText(model_name)
+
+        # 设置识别器类型
+        idx = self.recognizer_combo.findText(recognizer)
+        if idx >= 0:
+            self.recognizer_combo.setCurrentIndex(idx)
+        else:
+            self.recognizer_combo.setCurrentIndex(0)
 
     def save_settings(self):
         try:
@@ -367,6 +396,8 @@ class SettingsDialog(QDialog):
             self.parent.conf.set(section, 'APIBase', self.api_base_edit.text())
             self.parent.conf.set(section, 'APIKey', self.api_key_edit.text())
             self.parent.conf.set(section, 'ModelName', self.model_name_edit.text())
+            self.parent.conf.set(section, 'DisplayName', self.model_combo.currentText())
+            self.parent.conf.set(section, 'Recognizer', self.recognizer_combo.currentText())
 
             with open(os.path.join(BASE_DIR, 'config.ini'), 'w', encoding='utf-8') as f:
                 self.parent.conf.write(f)
@@ -375,6 +406,74 @@ class SettingsDialog(QDialog):
         except Exception as e:
             self.status_label.setText("状态: 保存失败")
             QMessageBox.critical(self, "错误", f"保存设置失败: {e}")
+
+    def _add_custom_model(self):
+        """添加自定义模型 — 弹出输入框让用户命名，然后在 config.ini 创建新 section"""
+        name, ok = QInputDialog.getText(self, "添加自定义模型", "请输入模型显示名称（例如: Claude Vision）:")
+        if not ok or not name.strip():
+            return
+
+        name = name.strip()
+        # 检查是否重名
+        for section in self.parent.conf.sections():
+            if section.startswith('API_'):
+                existing = self.parent.conf.get(section, 'DisplayName', fallback='')
+                if existing == name:
+                    QMessageBox.warning(self, "提示", f"模型「{name}」已存在")
+                    return
+
+        # 创建新的 section（用名称生成安全的 section 名）
+        import re
+        safe_name = re.sub(r'[^a-zA-Z0-9]', '_', name)
+        section_name = f"API_Custom_{safe_name}"
+
+        if not self.parent.conf.has_section(section_name):
+            self.parent.conf.add_section(section_name)
+
+        self.parent.conf.set(section_name, 'DisplayName', name)
+        self.parent.conf.set(section_name, 'Recognizer', 'openai')
+        self.parent.conf.set(section_name, 'APIBase', '')
+        self.parent.conf.set(section_name, 'APIKey', '')
+        self.parent.conf.set(section_name, 'ModelName', '')
+
+        with open(os.path.join(BASE_DIR, 'config.ini'), 'w', encoding='utf-8') as f:
+            self.parent.conf.write(f)
+
+        # 刷新下拉框并选中新模型
+        self._populate_model_combo()
+        for i, sec in enumerate(self._section_names):
+            if sec == section_name:
+                self.model_combo.setCurrentIndex(i)
+                break
+
+        self.status_label.setText(f"状态: 已添加模型「{name}」，请配置参数")
+
+    def _delete_current_model(self):
+        """删除当前选中的模型配置"""
+        section = self._get_section_name()
+        display_name = self.model_combo.currentText()
+
+        # 不允许删除内置模型
+        builtin_sections = {'API_Gemini', 'API_GPT', 'API_DeepSeek', 'API_QWen', 'API_iFLY'}
+        if section in builtin_sections:
+            QMessageBox.warning(self, "提示", f"内置模型「{display_name}」不可删除\n可以清空 API Key 使其在主界面隐藏。")
+            return
+
+        reply = QMessageBox.question(
+            self, "确认删除",
+            f"确定要删除模型「{display_name}」吗？\n此操作不可撤销。",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        self.parent.conf.remove_section(section)
+        with open(os.path.join(BASE_DIR, 'config.ini'), 'w', encoding='utf-8') as f:
+            self.parent.conf.write(f)
+
+        self._populate_model_combo()
+        self.update_api_fields()
+        self.status_label.setText(f"状态: 已删除模型「{display_name}」")
 
     def test_connection(self):
         api_key = self.api_key_edit.text()
@@ -537,20 +636,20 @@ class MainWindow(QMainWindow):
     def _update_font_sizes(self):
         """根据窗口宽度动态调整字号 — 基准: 960px 宽度 = 16px"""
         base_width = 960
-        scale = max(0.75, min(1.5, self.width() / base_width))
+        scale = max(0.8, min(1.6, self.width() / base_width))
 
         # 主编辑框字号
         edit_font = self.ui.plain_text_edit.font()
-        edit_font.setPointSize(max(12, int(16 * scale)))
+        edit_font.setPointSize(max(16, int(26 * scale)))
         self.ui.plain_text_edit.setFont(edit_font)
 
         # 状态标签字号
-        status_size = max(11, int(14 * scale))
+        status_size = max(14, int(25 * scale))
         self.ui.Copy_Status_Label.setStyleSheet(
             f"color: #4f6ef7; font-size: {status_size}px; padding: 4px 8px;"
         )
 
-    def formula2img(self, str_latex, out_file, img_size=(8, 4), font_size=40):
+    def formula2img(self, str_latex, out_file, img_size=(10, 5), font_size=56):
         """将LaTeX公式渲染为图片文件
 
         优先使用 matplotlib 的 mathtext 渲染，若失败则直接显示纯文本。
