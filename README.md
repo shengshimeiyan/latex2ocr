@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 | 模型 | API 地址 | 模型名称 |
 |------|----------|----------|
-| DeepSeek | `https://api.siliconflow.cn/v1` | `deepseek-ai/deepseek-vl2` |
+| DeepSeek | `https://api.siliconflow.cn/v1` | `Pro/deepseek-ai/deepseek-vl2` |
 | Qwen3-VL | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` |
 | Google Gemini | （留空） | `gemini-2.0-flash` |
 | GPT | （留空或自定义） | `gpt-4o-mini` |

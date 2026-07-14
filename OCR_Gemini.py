@@ -181,7 +181,7 @@ class DeepSeekFormulaRecognizer(OpenAICompatibleRecognizer):
             api_key=api_key,
             base_url=base_url,
             model_name=model_name,
-            default_model='deepseek-ai/deepseek-vl2'
+            default_model='Pro/deepseek-ai/deepseek-vl2'
         )
 
 

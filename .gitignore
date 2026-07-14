@@ -23,8 +23,8 @@ screenshot.png
 temp_latex.png
 temp.png
 
-# Config with user secrets (keep template only)
-# config.ini
+# Config with user secrets
+config.ini
 
 # OS
 .DS_Store

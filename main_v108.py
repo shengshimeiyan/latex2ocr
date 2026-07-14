@@ -93,7 +93,7 @@ class OcrWorker(QObject):
                 section = 'API_DeepSeek'
                 api_key = self.conf.get(section, 'APIKey', fallback='')
                 base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='deepseek-ai/deepseek-vl2')
+                model_name_conf = self.conf.get(section, 'ModelName', fallback='Pro/deepseek-ai/deepseek-vl2')
                 if not api_key:
                     raise ValueError("请先配置DeepSeek-VL2 API Key")
                 recognizer = DeepSeekFormulaRecognizer(api_key, base_url, model_name=model_name_conf)
