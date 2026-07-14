@@ -4,6 +4,7 @@ from google.genai import types as genai_types
 import os
 import sys
 from openai import OpenAI
+import httpx
 import base64
 import configparser
 from PIL import Image, ImageFilter
@@ -122,9 +123,15 @@ class OpenAICompatibleRecognizer:
         self.api_key = api_key
         self.base_url = base_url
         self.model_name = model_name or default_model
+        # 自动去掉 base_url 末尾的 /chat/completions（用户常误带此路径）
+        clean_url = self.base_url.rstrip('/') if self.base_url else None
+        if clean_url and clean_url.endswith('/chat/completions'):
+            clean_url = clean_url[:-len('/chat/completions')]
+
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url=self.base_url if self.base_url else None
+            base_url=clean_url,
+            http_client=httpx.Client(timeout=60.0)
         )
 
     def test_connection(self):
@@ -139,7 +146,15 @@ class OpenAICompatibleRecognizer:
                 return True
             raise RuntimeError("API 返回空响应")
         except Exception as e:
-            raise RuntimeError(f"连接测试失败: {str(e)}")
+            err_msg = str(e)
+            if 'Method Not Allowed' in err_msg:
+                raise RuntimeError(
+                    f"连接测试失败: Method Not Allowed\n"
+                    f"请检查 API地址 是否多带了 /chat/completions 后缀\n"
+                    f"正确格式: https://xxx/v1  (不含 /chat/completions)\n"
+                    f"当前 base_url: {self.client.base_url}"
+                )
+            raise RuntimeError(f"连接测试失败: {err_msg}")
 
     def recognize_formula(self, image_path):
         """识别图片中的公式并转换为 LaTeX"""

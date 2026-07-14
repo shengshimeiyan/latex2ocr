@@ -413,9 +413,8 @@ class MainWindowUI(object):
         self.bottom_button_layout.setContentsMargins(0, 6, 0, 0)
         self.bottom_button_layout.setSpacing(14)
 
-        # 模型选择
+        # 模型选择（动态加载，由 MainWindow._load_models_from_config() 填充）
         self.model_selector = QtWidgets.QComboBox(bottom_frame)
-        self.model_selector.addItems(["DeepSeek", "Google Gemini", "GPT", "Qwen3-VL", "讯飞API"])
         self.bottom_button_layout.addWidget(self.model_selector)
 
         # 识别按钮（主操作，醒目渐变）
