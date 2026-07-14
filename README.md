@@ -28,6 +28,19 @@
 pip install -r requirements.txt
 ```
 
+主要依赖：
+
+| 包名 | 用途 |
+|------|------|
+| PyQt5 | GUI 界面 |
+| PyQtWebEngine | QWebEngineView 公式渲染 |
+| Pillow | 图片处理 |
+| google-genai | Gemini API |
+| openai | DeepSeek / GPT / GLM / Qwen API（OpenAI 兼容） |
+| httpx | HTTP 客户端（API 调用） |
+| pyperclip | 剪贴板操作 |
+| ratelimit | API 调用速率限制 |
+
 #### 2.2 获取 API Key（必需）
 
 根据需要选择一个或多个模型，申请对应的 API Key：
@@ -65,8 +78,8 @@ pip install -r requirements.txt
 | GLM-4.6V-Flash | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | glm |
 | Qwen3-VL | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | openai |
 | AIHubMix | `https://aihubmix.com/v1` | `gpt-5.5-free` | openai |
-| Google Gemini | （留空） | `gemini-2.0-flash` | gemini |
-| GPT | （留空或自定义） | `gpt-4o-mini` | gpt |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` | gemini |
+| GPT | `https://api.openai.com/v1` | `gpt-4o-mini` | gpt |
 
 ### 3 开发说明
 
@@ -99,38 +112,7 @@ latex2ocr/
 - **`GPTFormulaRecognizer`**（OCR_Gemini.py）：GPT 模型识别器。
 - **`GLMFormulaRecognizer`**（OCR_Gemini.py）：智谱 GLM 视觉模型识别器，支持 JWT 鉴权。
 
-#### 3.3 依赖配置
-
-安装依赖：
-
-```bash
-pip install -r requirements.txt
-```
-
-主要依赖：
-
-| 包名 | 用途 |
-|------|------|
-| PyQt5 | GUI 界面 |
-| PyQtWebEngine | QWebEngineView 公式渲染 |
-| Pillow | 图片处理 |
-| google-genai | Gemini API |
-| openai | DeepSeek / GPT / GLM / Qwen API（OpenAI 兼容） |
-| httpx | HTTP 客户端（API 调用） |
-| pyperclip | 剪贴板操作 |
-| ratelimit | API 调用速率限制 |
-
-#### 3.4 打包发布
-
-```bash
-# PyInstaller 打包
-pyinstaller --onefile --windowed --name latex2ocr main_v108.py
-
-# Inno Setup 安装包
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
-```
-
-#### 3.5 调试方法
+#### 3.3 调试方法
 
 运行主程序：
 
