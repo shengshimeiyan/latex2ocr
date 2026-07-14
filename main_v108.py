@@ -103,7 +103,7 @@ class OcrWorker(QObject):
                 section = 'API_QWen'
                 api_key = self.conf.get(section, 'APIKey', fallback='')
                 base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='Qwen/Qwen3-VL-32B-Instruct')
+                model_name_conf = self.conf.get(section, 'ModelName', fallback='Qwen/Qwen3-VL-8B-Instruct')
                 if not api_key:
                     raise ValueError("请先配置 QWen API Key")
                 recognizer = DeepSeekFormulaRecognizer(api_key, base_url, model_name=model_name_conf)
