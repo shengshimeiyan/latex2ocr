@@ -1,13 +1,10 @@
 import sys
 import os
-import subprocess
 import configparser
-import platform
 
 import pyperclip
-from PIL import ImageGrab
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QObject, QTimer, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QPixmap
@@ -17,11 +14,6 @@ from PyQt5.QtWidgets import (
     QComboBox, QLabel, QHBoxLayout, QInputDialog
 )
 
-import pyautogui
-import psutil
-import pygetwindow as gw
-from matplotlib import pyplot as plt
-
 from Init_Window_v105 import MainWindowUI
 from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, DeepSeekFormulaRecognizer, GLMFormulaRecognizer
 
@@ -30,81 +22,6 @@ if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-class ClipboardMonitor(QObject):
-    """剪贴板监控类，用于检测剪贴板中的新图片
-
-    使用轮询方式检测剪贴板变化（比信号更可靠），
-    仅在截屏模式下工作，避免误触发。
-
-    Attributes:
-        callback: 检测到新图片时的回调函数
-        clipboard: 系统剪贴板实例
-        _timer: 轮询定时器
-        _last_image_hash: 上次检测到的图片哈希，防止重复触发
-    """
-    def __init__(self, callback):
-        """初始化剪贴板监控器"""
-        super().__init__()
-        self.callback = callback
-        self.clipboard = QApplication.clipboard()
-        self._last_image_hash = None
-        self._active = False
-
-        # 轮询定时器：每 500ms 检查一次剪贴板
-        self._timer = QtCore.QTimer(self)
-        self._timer.setInterval(500)
-        self._timer.timeout.connect(self._check_clipboard)
-
-    def start_monitoring(self):
-        """开始监控剪贴板"""
-        # 记录当前剪贴板内容的哈希作为基线
-        self._snapshot_baseline()
-        self._active = True
-        self._timer.start()
-        print("剪贴板监控已启动")
-
-    def stop_monitoring(self):
-        """停止监控剪贴板"""
-        self._active = False
-        self._timer.stop()
-        print("剪贴板监控已停止")
-
-    def _snapshot_baseline(self):
-        """记录当前剪贴板图片哈希作为基线"""
-        try:
-            image = ImageGrab.grabclipboard()
-            if image:
-                import hashlib
-                buf = __import__('io').BytesIO()
-                image.save(buf, format='PNG')
-                self._last_image_hash = hashlib.md5(buf.getvalue()).hexdigest()
-            else:
-                self._last_image_hash = None
-        except Exception:
-            self._last_image_hash = None
-
-    def _check_clipboard(self):
-        """定时检查剪贴板是否有新图片"""
-        if not self._active:
-            return
-        try:
-            image = ImageGrab.grabclipboard()
-            if image is None:
-                return
-
-            import hashlib
-            buf = __import__('io').BytesIO()
-            image.save(buf, format='PNG')
-            current_hash = hashlib.md5(buf.getvalue()).hexdigest()
-
-            if current_hash != self._last_image_hash:
-                self._last_image_hash = current_hash
-                print(f"检测到剪贴板中的新截图 (hash: {current_hash[:8]}...)")
-                self.callback(image)
-        except (IOError, RuntimeError, ValueError) as e:
-            print(f"剪贴板检测失败: {str(e)}")
 
 
 class ScreenshotOverlay(QtWidgets.QWidget):
@@ -527,7 +444,7 @@ class SettingsDialog(QDialog):
         display_name = self.model_combo.currentText()
 
         # 不允许删除内置模型
-        builtin_sections = {'API_Gemini', 'API_GPT', 'API_DeepSeek', 'API_QWen', 'API_iFLY'}
+        builtin_sections = {'API_Gemini', 'API_GPT', 'API_DeepSeek', 'API_QWen', 'API_GLM', 'API_iFLY'}
         if section in builtin_sections:
             QMessageBox.warning(self, "提示", f"内置模型「{display_name}」不可删除\n可以清空 API Key 使其在主界面隐藏。")
             return

@@ -213,22 +213,19 @@ class GPTFormulaRecognizer(OpenAICompatibleRecognizer):
         )
 
 
-class GLMFormulaRecognizer:
-    """智谱 GLM-4.6V 视觉模型公式识别器（使用 OpenAI 兼容接口）"""
+class GLMFormulaRecognizer(OpenAICompatibleRecognizer):
+    """智谱 GLM-4.6V 视觉模型公式识别器（JWT 鉴权 + OpenAI 兼容接口）"""
 
     def __init__(self, api_key, base_url=None, model_name=None):
-        self.api_key = api_key
-        self.base_url = (base_url or 'https://open.bigmodel.cn/api/paas/v4').rstrip('/')
-        self.model_name = model_name or 'glm-4.6v-flash'
-        # 自动去掉末尾的 /chat/completions
-        if self.base_url.endswith('/chat/completions'):
-            self.base_url = self.base_url[:-len('/chat/completions')]
-        # 智谱 API 使用 JWT 鉴权，需要生成 token
+        self._api_key_raw = api_key
         self._token_cache = {'token': None, 'exp': 0}
-        self.client = OpenAI(
-            api_key=self._generate_token(),
-            base_url=self.base_url,
-            http_client=httpx.Client(timeout=60.0)
+        # 先用 JWT token 初始化基类
+        jwt_token = self._generate_token()
+        super().__init__(
+            api_key=jwt_token,
+            base_url=base_url or 'https://open.bigmodel.cn/api/paas/v4',
+            model_name=model_name,
+            default_model='glm-4.6v-flash'
         )
 
     def _generate_token(self):
@@ -236,17 +233,12 @@ class GLMFormulaRecognizer:
         try:
             import hmac
             import hashlib
-            from datetime import datetime
 
-            # 智谱 API Key 格式: {id}.{secret}
-            parts = self.api_key.split('.')
+            parts = self._api_key_raw.split('.')
             if len(parts) != 2:
-                # 如果不是标准格式，直接当作 Bearer token 使用
-                return self.api_key
+                return self._api_key_raw
 
             api_id, api_secret = parts
-
-            # 构造 JWT header 和 payload
             header = base64.urlsafe_b64encode(
                 json.dumps({"alg": "HS256", "sign_type": "SIGN"}).encode()
             ).rstrip(b'=').decode()
@@ -260,7 +252,6 @@ class GLMFormulaRecognizer:
                 }).encode()
             ).rstrip(b'=').decode()
 
-            # 签名
             message = f"{header}.{payload}"
             signature = base64.urlsafe_b64encode(
                 hmac.new(
@@ -275,11 +266,10 @@ class GLMFormulaRecognizer:
             return token
 
         except Exception:
-            # JWT 生成失败时，回退到直接使用 API Key
-            return self.api_key
+            return self._api_key_raw
 
     def _ensure_token(self):
-        """确保 token 未过期，过期则重新生成"""
+        """确保 token 未过期，过期则重新生成并重建 client"""
         if self._token_cache['exp'] - int(time.time()) < 60:
             new_token = self._generate_token()
             self.client = OpenAI(
@@ -289,55 +279,9 @@ class GLMFormulaRecognizer:
             )
 
     def test_connection(self):
-        """测试 API 连接是否正常"""
-        try:
-            self._ensure_token()
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
-            )
-            if response.choices:
-                return True
-            raise RuntimeError("API 返回空响应")
-        except Exception as e:
-            err_msg = str(e)
-            if 'Method Not Allowed' in err_msg:
-                raise RuntimeError(
-                    f"连接测试失败: Method Not Allowed\n"
-                    f"请检查 API地址 是否多带了 /chat/completions 后缀\n"
-                    f"正确格式: https://open.bigmodel.cn/api/paas/v1\n"
-                    f"当前 base_url: {self.base_url}"
-                )
-            raise RuntimeError(f"连接测试失败: {err_msg}")
+        self._ensure_token()
+        return super().test_connection()
 
     def recognize_formula(self, image_path):
-        """识别图片中的公式并转换为 LaTeX"""
-        try:
-            self._ensure_token()
-            base64_image = encode_image_to_base64(image_path)
-
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": FORMULA_RECOGNITION_PROMPT},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/png;base64,{base64_image}"}
-                            }
-                        ]
-                    }
-                ],
-                temperature=0.2,
-                max_tokens=1024,
-                stream=False
-            )
-
-            result = response.choices[0].message.content
-            return result
-
-        except Exception as e:
-            raise RuntimeError(f"({self.model_name}) 识别错误: {str(e)}")
+        self._ensure_token()
+        return super().recognize_formula(image_path)

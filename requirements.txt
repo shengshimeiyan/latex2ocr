@@ -1,10 +1,8 @@
 PyQt5>=5.15
+PyQtWebEngine>=5.15
 Pillow>=8.0
 pyperclip>=1.8
-pyautogui>=0.9
-psutil>=5.8
-pygetwindow>=0.0.9
-matplotlib>=3.3
 google-genai>=1.0
 openai>=1.0
+httpx>=0.24
 ratelimit>=2.1
