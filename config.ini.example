@@ -15,7 +15,7 @@ Recognizer = openai
 [API_DeepSeek]
 APIBase = https://aihubmix.com/v1
 APIKey = your-aihubmix-api-key-here
-ModelName = coding-minimax-m3-free
+ModelName = gpt-5.5-free
 DisplayName = AIHubMix
 Recognizer = openai
 
@@ -25,6 +25,13 @@ APIKey =
 ModelName = Qwen/Qwen3-VL-8B-Instruct
 DisplayName = Qwen3-VL
 Recognizer = openai
+
+[API_GLM]
+APIBase = https://open.bigmodel.cn/api/paas/v4
+APIKey = your-zhipuai-api-key-here
+ModelName = glm-4v-flash
+DisplayName = GLM-4V
+Recognizer = glm
 
 [API_iFLY]
 APPID = 

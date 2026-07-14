@@ -23,7 +23,7 @@ import pygetwindow as gw
 from matplotlib import pyplot as plt
 
 from Init_Window_v105 import MainWindowUI
-from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, DeepSeekFormulaRecognizer
+from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, DeepSeekFormulaRecognizer, GLMFormulaRecognizer
 
 # PyInstaller --onefile 兼容：优先使用 exe 所在目录，否则用脚本目录
 if getattr(sys, 'frozen', False):
@@ -206,6 +206,8 @@ class OcrWorker(QObject):
                 recognizer = GPTFormulaRecognizer(api_key, api_base, model_name=model_name)
             elif recognizer_type == 'ifly':
                 raise NotImplementedError("讯飞API识别尚未实现")
+            elif recognizer_type == 'glm':
+                recognizer = GLMFormulaRecognizer(api_key, api_base, model_name=model_name)
             else:
                 raise ValueError(f"未知的识别器类型: {recognizer_type}")
 
@@ -240,6 +242,8 @@ class ApiTestWorker(QObject):
             elif self.recognizer_type == 'ifly':
                 self.error.emit("讯飞API测试尚未实现")
                 return
+            elif self.recognizer_type == 'glm':
+                recognizer = GLMFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
             else:
                 self.error.emit(f"未知的识别器类型: {self.recognizer_type}")
                 return
@@ -371,8 +375,8 @@ class SettingsDialog(QDialog):
         self.model_name_edit.setPlaceholderText("例如: gpt-4o-mini, Qwen/Qwen3-VL-8B-Instruct")
 
         self.recognizer_combo = QComboBox()
-        self.recognizer_combo.addItems(["openai", "gemini", "gpt", "ifly"])
-        self.recognizer_combo.setToolTip("openai = OpenAI兼容API (DeepSeek/Qwen/SiliconFlow等)\ngemini = Google Gemini API\ngpt = GPT专用\ndify = 讯飞API")
+        self.recognizer_combo.addItems(["openai", "gemini", "gpt", "glm", "ifly"])
+        self.recognizer_combo.setToolTip("openai = OpenAI兼容API (DeepSeek/Qwen/SiliconFlow等)\ngemini = Google Gemini API\ngpt = GPT专用\nglm = 智谱GLM视觉模型\nifly = 讯飞API")
 
         form_layout.addRow("API地址:", self.api_base_edit)
         form_layout.addRow("API密钥:", self.api_key_edit)
