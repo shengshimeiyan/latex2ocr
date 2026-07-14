@@ -29,3 +29,8 @@ temp.png
 # OS
 .DS_Store
 Thumbs.db
+
+# PyInstaller
+*.spec
+installer_output/
+*.cer
