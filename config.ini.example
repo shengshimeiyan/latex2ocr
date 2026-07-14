@@ -30,7 +30,7 @@ Recognizer = openai
 APIBase = https://open.bigmodel.cn/api/paas/v4
 APIKey = your-zhipuai-api-key-here
 ModelName = glm-4.6v-flash
-DisplayName = GLM-4V
+DisplayName = GLM-4.6V-flash
 Recognizer = glm
 
 [API_iFLY]
