@@ -13,10 +13,10 @@ DisplayName = GPT
 Recognizer = openai
 
 [API_DeepSeek]
-APIBase = https://api.siliconflow.cn/v1
-APIKey = 
-ModelName = Pro/deepseek-ai/deepseek-vl2
-DisplayName = DeepSeek
+APIBase = https://aihubmix.com/v1
+APIKey = your-aihubmix-api-key-here
+ModelName = coding-minimax-m3-free
+DisplayName = AIHubMix
 Recognizer = openai
 
 [API_QWen]

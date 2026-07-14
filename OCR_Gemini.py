@@ -176,7 +176,6 @@ class OpenAICompatibleRecognizer:
                     }
                 ],
                 temperature=0.2,
-                top_p=0.7,
                 max_tokens=1024,
                 stream=False
             )
