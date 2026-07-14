@@ -31,28 +31,78 @@ else:
 
 
 class ClipboardMonitor(QObject):
-    """剪贴板监控类，用于检测剪贴板内容变化
+    """剪贴板监控类，用于检测剪贴板中的新图片
+
+    使用轮询方式检测剪贴板变化（比信号更可靠），
+    仅在截屏模式下工作，避免误触发。
 
     Attributes:
-        callback: 剪贴板变化时的回调函数
+        callback: 检测到新图片时的回调函数
         clipboard: 系统剪贴板实例
+        _timer: 轮询定时器
+        _last_image_hash: 上次检测到的图片哈希，防止重复触发
     """
     def __init__(self, callback):
         """初始化剪贴板监控器"""
         super().__init__()
         self.callback = callback
         self.clipboard = QApplication.clipboard()
-        self.clipboard.dataChanged.connect(self.on_clipboard_change)
+        self._last_image_hash = None
+        self._active = False
 
-    def on_clipboard_change(self):
-        """剪贴板内容变化时触发"""
+        # 轮询定时器：每 500ms 检查一次剪贴板
+        self._timer = QtCore.QTimer(self)
+        self._timer.setInterval(500)
+        self._timer.timeout.connect(self._check_clipboard)
+
+    def start_monitoring(self):
+        """开始监控剪贴板"""
+        # 记录当前剪贴板内容的哈希作为基线
+        self._snapshot_baseline()
+        self._active = True
+        self._timer.start()
+        print("剪贴板监控已启动")
+
+    def stop_monitoring(self):
+        """停止监控剪贴板"""
+        self._active = False
+        self._timer.stop()
+        print("剪贴板监控已停止")
+
+    def _snapshot_baseline(self):
+        """记录当前剪贴板图片哈希作为基线"""
         try:
             image = ImageGrab.grabclipboard()
             if image:
-                print("检测到剪贴板中的截图")
+                import hashlib
+                buf = __import__('io').BytesIO()
+                image.save(buf, format='PNG')
+                self._last_image_hash = hashlib.md5(buf.getvalue()).hexdigest()
+            else:
+                self._last_image_hash = None
+        except Exception:
+            self._last_image_hash = None
+
+    def _check_clipboard(self):
+        """定时检查剪贴板是否有新图片"""
+        if not self._active:
+            return
+        try:
+            image = ImageGrab.grabclipboard()
+            if image is None:
+                return
+
+            import hashlib
+            buf = __import__('io').BytesIO()
+            image.save(buf, format='PNG')
+            current_hash = hashlib.md5(buf.getvalue()).hexdigest()
+
+            if current_hash != self._last_image_hash:
+                self._last_image_hash = current_hash
+                print(f"检测到剪贴板中的新截图 (hash: {current_hash[:8]}...)")
                 self.callback(image)
         except (IOError, RuntimeError, ValueError) as e:
-            print(f"剪贴板监控失败: {str(e)}")
+            print(f"剪贴板检测失败: {str(e)}")
 
 
 class OcrWorker(QObject):
@@ -420,7 +470,7 @@ class MainWindow(QMainWindow):
 
         self.clipboard_monitor = ClipboardMonitor(self.process_screenshot)
 
-        # 截屏模式标志：仅在截屏模式下处理剪贴板变化
+        # 截屏模式标志
         self._screenshot_mode = False
 
         # 初始化配置
@@ -552,25 +602,30 @@ class MainWindow(QMainWindow):
             current_os = platform.system()
 
             if current_os == "Windows":
+                self.clipboard_monitor.start_monitoring()
                 subprocess.run('start ms-screenclip:', shell=True, check=False)
             elif current_os == "Darwin":  # macOS
+                self.clipboard_monitor.start_monitoring()
                 subprocess.run(['screencapture', '-i', '-c'], check=False)
             else:  # Linux
                 # 尝试使用 gnome-screenshot，如不可用则提示用户
                 try:
+                    self.clipboard_monitor.start_monitoring()
                     subprocess.run(['gnome-screenshot', '-a'], check=False)
                 except FileNotFoundError:
+                    self._screenshot_mode = False
+                    self.clipboard_monitor.stop_monitoring()
                     QMessageBox.warning(
                         self, "提示",
                         "未找到截图工具，请安装 gnome-screenshot\n"
                         "或使用系统快捷键截图后粘贴。"
                     )
-                    self._screenshot_mode = False
                     self.show()
                     return
 
         except (OSError, RuntimeError) as e:
             self._screenshot_mode = False
+            self.clipboard_monitor.stop_monitoring()
             QMessageBox.critical(self, "错误", f"截图工具启动失败: {str(e)}")
             self.show()
 
@@ -581,6 +636,7 @@ class MainWindow(QMainWindow):
             return
 
         self._screenshot_mode = False
+        self.clipboard_monitor.stop_monitoring()
 
         try:
             self.show()
@@ -596,6 +652,7 @@ class MainWindow(QMainWindow):
             self.recognize_formula()
 
         except (IOError, ValueError, RuntimeError) as e:
+            self.clipboard_monitor.stop_monitoring()
             QMessageBox.critical(self, "错误", f"截图处理失败: {str(e)}")
             self.show()
             self.activateWindow()
