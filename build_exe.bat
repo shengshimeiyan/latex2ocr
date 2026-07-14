@@ -1,69 +1,70 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
+
 echo ========================================
 echo   latex2ocr 一键打包脚本
 echo ========================================
 echo.
 
-REM 第1步：PyInstaller 打包
-echo [1/3] PyInstaller 打包中...
-python -m PyInstaller --name "latex2ocr" --onefile --windowed --add-data "config.ini;." main_v108.py --noconfirm
-if errorlevel 1 (
-    echo PyInstaller 打包失败！
+REM 检查 Python
+where python >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [错误] 未找到 Python，请先安装 Python 3.7+
     pause
     exit /b 1
 )
-echo PyInstaller 打包完成。
 
-REM 复制 config.ini 到 dist
-copy /Y config.ini dist\
-
-REM 第2步：自签名（可选，不能消除 SmartScreen 但标注发布者）
-echo.
-echo [2/3] 代码签名...
-where signtool >nul 2>&1
-if %errorlevel%==0 (
-    REM 检查是否已有自签名证书
-    certutil -store My "latex2ocr-signing" >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo 创建自签名证书...
-        makecert -r -pe -n "CN=shengshimeiyan" -ss My "latex2ocr-signing.cer" >nul 2>&1
-        if errorlevel 1 (
-            echo makecert 不可用，跳过签名（需安装 Windows SDK）
-            goto :skip_sign
-        )
-    )
-    signtool sign /s My /n "shengshimeiyan" /t http://timestamp.digicert.com /fd sha256 "dist\latex2ocr.exe" >nul 2>&1
-    if errorlevel 1 (
-        echo 签名失败，跳过。
-    ) else (
-        echo 签名成功。
-    )
-) else (
-    echo signtool 未安装，跳过签名。
+REM 第1步：PyInstaller 打包
+echo [1/2] PyInstaller 打包中...
+python -m PyInstaller --name "latex2ocr" --onefile --windowed --add-data "config.ini;." main_v108.py --noconfirm
+if errorlevel 1 (
+    echo [错误] PyInstaller 打包失败！
+    pause
+    exit /b 1
 )
-:skip_sign
+echo [1/2] PyInstaller 打包完成。
 
-REM 第3步：Inno Setup 打包（如果已安装）
+REM 复制配置文件到 dist
+copy /Y config.ini dist\ >nul
+
+REM 第2步：Inno Setup 打包
 echo.
-echo [3/3] Inno Setup 打包...
+echo [2/2] Inno Setup 生成安装包...
 where iscc >nul 2>&1
-if %errorlevel%==0 (
-    iscc setup.iss
-    if errorlevel 1 (
-        echo Inno Setup 打包失败！
-    ) else (
-        echo 安装包已生成到 installer_output\ 目录。
-    )
-) else (
-    echo Inno Setup 未安装，跳过安装包生成。
-    echo 仅生成裸 exe: dist\latex2ocr.exe
+if %errorlevel% neq 0 (
+    echo [跳过] Inno Setup (ISCC) 未安装。
+    echo        仅生成裸 exe: dist\latex2ocr.exe
+    echo.
+    echo        如需生成安装包，请安装 Inno Setup:
+    echo        https://jrsoftware.org/isdl.php
+    echo        安装后重新运行此脚本即可。
+    goto :done
 )
 
+iscc setup.iss
+if errorlevel 1 (
+    echo [错误] Inno Setup 打包失败！
+    pause
+    exit /b 1
+)
+echo [2/2] Inno Setup 安装包生成完成。
+
+:done
 echo.
 echo ========================================
 echo   打包完成！
-echo   - 裸 exe: dist\latex2ocr.exe
-echo   - 安装包: installer_output\ (如已安装 Inno Setup)
+echo.
+if exist "installer_output\latex2ocr-setup-v1.0.0.exe" (
+    echo   安装包: installer_output\latex2ocr-setup-v1.0.0.exe
+    echo.
+    echo   将此文件发送给用户即可，双击安装，
+    echo   不会触发 Windows SmartScreen 拦截。
+) else (
+    echo   裸 exe: dist\latex2ocr.exe
+    echo   配置文件: dist\config.ini
+    echo.
+    echo   将这两个文件放在同一目录即可使用。
+)
 echo ========================================
 pause
