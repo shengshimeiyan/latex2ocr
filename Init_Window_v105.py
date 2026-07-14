@@ -284,9 +284,9 @@ class MainWindowUI(object):
         # ====== 顶部工具栏 ======
         toolbar_frame = QtWidgets.QFrame(self.centralwidget)
         toolbar_frame.setObjectName("toolbar")
-        toolbar_frame.setFixedHeight(62)
+        toolbar_frame.setFixedHeight(78)
         self.top_button_layout = QtWidgets.QHBoxLayout(toolbar_frame)
-        self.top_button_layout.setContentsMargins(18, 8, 18, 8)
+        self.top_button_layout.setContentsMargins(18, 10, 18, 10)
         self.top_button_layout.setSpacing(12)
 
         # 上传按钮
