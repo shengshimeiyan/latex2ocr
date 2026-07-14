@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# 现代 UI 界面 - 参考 SimpleTeX 风格
-# 深色蓝紫主题、卡片式布局、圆角按钮、扁平化设计
+# 现代 UI 界面 - SimpleTeX 风格白色主题
+# 简洁白色、卡片式布局、圆角按钮、蓝色强调色
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt
@@ -12,26 +12,26 @@ from PyQt5.QtGui import QFont, QIcon
 GLOBAL_STYLESHEET = """
 /* ---------- 主窗口 ---------- */
 QMainWindow {
-    background-color: #1a1b2e;
+    background-color: #f5f6fa;
 }
 
 QWidget#centralwidget {
-    background-color: #1a1b2e;
+    background-color: #f5f6fa;
 }
 
 /* ---------- 顶部工具栏 ---------- */
 QFrame#toolbar {
-    background-color: #232440;
-    border: none;
+    background-color: #ffffff;
+    border: 1px solid #e8e8ef;
     border-radius: 12px;
     padding: 6px 12px;
 }
 
 /* ---------- 通用按钮 ---------- */
 QPushButton {
-    background-color: #2d2f52;
-    color: #c8c8e0;
-    border: 1px solid #3a3c66;
+    background-color: #ffffff;
+    color: #333344;
+    border: 1px solid #d8d8e3;
     border-radius: 8px;
     padding: 8px 20px;
     font-size: 13px;
@@ -39,23 +39,23 @@ QPushButton {
     min-height: 18px;
 }
 QPushButton:hover {
-    background-color: #3a3c66;
-    color: #ffffff;
-    border-color: #5a5caa;
+    background-color: #f0f0f8;
+    color: #1a1a2e;
+    border-color: #b0b0cc;
 }
 QPushButton:pressed {
-    background-color: #4a4c88;
+    background-color: #e8e8f0;
 }
 QPushButton:disabled {
-    background-color: #1e1f38;
-    color: #555570;
-    border-color: #2a2a44;
+    background-color: #f5f5f8;
+    color: #b0b0c0;
+    border-color: #e0e0e8;
 }
 
-/* ---------- 主要操作按钮（截屏 / 识别） ---------- */
+/* ---------- 主要操作按钮（截屏） ---------- */
 QPushButton#screenshotButton {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #6c5ce7, stop:1 #a855f7);
+        stop:0 #4f6ef7, stop:1 #6c5ce7);
     color: #ffffff;
     border: none;
     border-radius: 8px;
@@ -65,11 +65,11 @@ QPushButton#screenshotButton {
 }
 QPushButton#screenshotButton:hover {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #7c6cf7, stop:1 #b865ff);
+        stop:0 #5f7eff, stop:1 #7c6cf7);
 }
 QPushButton#screenshotButton:pressed {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #5c4cd7, stop:1 #9845e7);
+        stop:0 #3f5ee7, stop:1 #5c4cd7);
 }
 
 QPushButton#recognize_button {
@@ -87,22 +87,22 @@ QPushButton#recognize_button:hover {
         stop:0 #4b92ff, stop:1 #7376f1);
 }
 QPushButton#recognize_button:disabled {
-    background-color: #2a2c4e;
-    color: #555570;
+    background-color: #e0e0e8;
+    color: #a0a0b0;
 }
 
 /* ---------- 下拉框 ---------- */
 QComboBox {
-    background-color: #2d2f52;
-    color: #c8c8e0;
-    border: 1px solid #3a3c66;
+    background-color: #ffffff;
+    color: #333344;
+    border: 1px solid #d8d8e3;
     border-radius: 8px;
     padding: 8px 14px;
     min-width: 140px;
     font-size: 13px;
 }
 QComboBox:hover {
-    border-color: #5a5caa;
+    border-color: #4f6ef7;
 }
 QComboBox::drop-down {
     border: none;
@@ -112,65 +112,65 @@ QComboBox::down-arrow {
     image: none;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 6px solid #8888bb;
+    border-top: 6px solid #8888aa;
     margin-right: 8px;
 }
 QComboBox QAbstractItemView {
-    background-color: #2d2f52;
-    color: #c8c8e0;
-    border: 1px solid #3a3c66;
+    background-color: #ffffff;
+    color: #333344;
+    border: 1px solid #d8d8e3;
     border-radius: 8px;
-    selection-background-color: #4a4c88;
-    selection-color: #ffffff;
+    selection-background-color: #eef0ff;
+    selection-color: #1a1a2e;
     outline: none;
     padding: 4px;
 }
 
 /* ---------- 卡片容器 ---------- */
 QFrame#card {
-    background-color: #232440;
-    border: 1px solid #2e3055;
+    background-color: #ffffff;
+    border: 1px solid #e8e8ef;
     border-radius: 12px;
 }
 
 /* ---------- 预览标签 ---------- */
 QLabel#imageLabel {
-    background-color: #1e1f38;
-    border: 2px dashed #3a3c66;
+    background-color: #fafafc;
+    border: 2px dashed #d0d0dd;
     border-radius: 10px;
-    color: #555580;
+    color: #a0a0b8;
     font-size: 14px;
 }
 QLabel#latexLabel {
-    background-color: #1e1f38;
-    border: 2px dashed #3a3c66;
+    background-color: #fafafc;
+    border: 2px dashed #d0d0dd;
     border-radius: 10px;
-    color: #555580;
+    color: #a0a0b8;
     font-size: 14px;
 }
 
 /* ---------- 文本编辑框 ---------- */
 QPlainTextEdit {
-    background-color: #1e1f38;
-    color: #e0e0f0;
-    border: 1px solid #2e3055;
+    background-color: #fafafc;
+    color: #1a1a2e;
+    border: 1px solid #e8e8ef;
     border-radius: 10px;
     padding: 12px 16px;
     font-family: "Consolas", "Fira Code", monospace;
     font-size: 14px;
-    selection-background-color: #4a4c88;
+    selection-background-color: #dce0ff;
 }
 
 /* ---------- 状态标签 ---------- */
 QLabel#status_label {
-    color: #6c5ce7;
+    color: #4f6ef7;
     font-size: 12px;
     padding: 4px 8px;
 }
 
 /* ---------- 分隔线 ---------- */
 QFrame#separator {
-    background-color: #2e3055;
+    background-color: #e8e8ef;
     max-height: 1px;
 }
 
@@ -178,13 +178,13 @@ QFrame#separator {
 QPushButton#aboutButton {
     background-color: transparent;
     border: 1px solid transparent;
-    color: #8888bb;
+    color: #8888aa;
     padding: 8px 12px;
 }
 QPushButton#aboutButton:hover {
-    color: #c8c8e0;
-    background-color: #2d2f52;
-    border-color: #3a3c66;
+    color: #333344;
+    background-color: #f0f0f8;
+    border-color: #d8d8e3;
     border-radius: 8px;
 }
 
@@ -192,21 +192,21 @@ QPushButton#aboutButton:hover {
 QPushButton#settingsButton {
     background-color: transparent;
     border: 1px solid transparent;
-    color: #8888bb;
+    color: #8888aa;
     padding: 8px 12px;
 }
 QPushButton#settingsButton:hover {
-    color: #c8c8e0;
-    background-color: #2d2f52;
-    border-color: #3a3c66;
+    color: #333344;
+    background-color: #f0f0f8;
+    border-color: #d8d8e3;
     border-radius: 8px;
 }
 
 /* ---------- 菜单 ---------- */
 QMenu {
-    background-color: #2d2f52;
-    color: #c8c8e0;
-    border: 1px solid #3a3c66;
+    background-color: #ffffff;
+    color: #333344;
+    border: 1px solid #e8e8ef;
     border-radius: 8px;
     padding: 6px;
 }
@@ -215,23 +215,23 @@ QMenu::item {
     border-radius: 4px;
 }
 QMenu::item:selected {
-    background-color: #4a4c88;
-    color: #ffffff;
+    background-color: #eef0ff;
+    color: #1a1a2e;
 }
 
 /* ---------- 滚动条 ---------- */
 QScrollBar:vertical {
-    background: #1a1b2e;
+    background: #f5f6fa;
     width: 8px;
     border-radius: 4px;
 }
 QScrollBar::handle:vertical {
-    background: #3a3c66;
+    background: #d0d0dd;
     border-radius: 4px;
     min-height: 30px;
 }
 QScrollBar::handle:vertical:hover {
-    background: #5a5caa;
+    background: #b0b0cc;
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     height: 0px;
@@ -240,7 +240,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 
 
 class MainWindowUI(object):
-    """主窗口的用户界面类 - SimpleTeX 风格现代深色主题"""
+    """主窗口的用户界面类 - SimpleTeX 风格白色主题"""
 
     def __init__(self):
         self.centralwidget = None
@@ -308,6 +308,7 @@ class MainWindowUI(object):
         self.aboutMenu = QtWidgets.QMenu(self.aboutButton)
         self.helpAction = self.aboutMenu.addAction("帮助文档")
         self.contactAction = self.aboutMenu.addAction("联系我们")
+        self.aboutButton.setMenu(self.aboutButton.style().createdPopupBase if hasattr(self.aboutButton.style(), 'createdPopupBase') else self.aboutMenu)
         self.aboutButton.setMenu(self.aboutMenu)
         self.top_button_layout.addWidget(self.aboutButton)
 
@@ -324,7 +325,7 @@ class MainWindowUI(object):
         image_layout.setContentsMargins(2, 2, 2, 2)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
-        image_header.setStyleSheet("color: #8888bb; font-size: 12px; font-weight: 600; padding: 4px 10px; background: transparent; border: none;")
+        image_header.setStyleSheet("color: #8888aa; font-size: 12px; font-weight: 600; padding: 4px 10px; background: transparent; border: none;")
         image_layout.addWidget(image_header)
 
         self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
@@ -342,7 +343,7 @@ class MainWindowUI(object):
         latex_layout.setContentsMargins(2, 2, 2, 2)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
-        latex_header.setStyleSheet("color: #8888bb; font-size: 12px; font-weight: 600; padding: 4px 10px; background: transparent; border: none;")
+        latex_header.setStyleSheet("color: #8888aa; font-size: 12px; font-weight: 600; padding: 4px 10px; background: transparent; border: none;")
         latex_layout.addWidget(latex_header)
 
         self.latexLabel = QtWidgets.QLabel("识别结果将在此渲染", latex_card)
@@ -372,7 +373,7 @@ class MainWindowUI(object):
         code_header_layout.setContentsMargins(10, 6, 10, 0)
 
         code_label = QtWidgets.QLabel("📝 LaTeX 代码", code_card)
-        code_label.setStyleSheet("color: #8888bb; font-size: 12px; font-weight: 600; background: transparent; border: none;")
+        code_label.setStyleSheet("color: #8888aa; font-size: 12px; font-weight: 600; background: transparent; border: none;")
         code_header_layout.addWidget(code_label)
 
         code_header_layout.addStretch()
@@ -381,11 +382,11 @@ class MainWindowUI(object):
         self.copy_button = QtWidgets.QPushButton("📋 复制", code_card)
         self.copy_button.setStyleSheet("""
             QPushButton {
-                background-color: #2d2f52; color: #8888bb;
-                border: 1px solid #3a3c66; border-radius: 6px;
+                background-color: #ffffff; color: #8888aa;
+                border: 1px solid #d8d8e3; border-radius: 6px;
                 padding: 4px 14px; font-size: 12px; min-height: 14px;
             }
-            QPushButton:hover { background-color: #3a3c66; color: #ffffff; }
+            QPushButton:hover { background-color: #f0f0f8; color: #333344; }
         """)
         code_header_layout.addWidget(self.copy_button)
 

@@ -420,6 +420,9 @@ class MainWindow(QMainWindow):
 
         self.clipboard_monitor = ClipboardMonitor(self.process_screenshot)
 
+        # 截屏模式标志：仅在截屏模式下处理剪贴板变化
+        self._screenshot_mode = False
+
         # 初始化配置
         self.conf = configparser.ConfigParser()
         self.conf.read(os.path.join(BASE_DIR, 'config.ini'), encoding="utf-8-sig")
@@ -544,6 +547,7 @@ class MainWindow(QMainWindow):
     def capture_screenshot(self):
         """跨平台截图功能，最小化窗口后调用系统截图工具"""
         try:
+            self._screenshot_mode = True
             self.setWindowState(QtCore.Qt.WindowMinimized)
             current_os = platform.system()
 
@@ -561,22 +565,27 @@ class MainWindow(QMainWindow):
                         "未找到截图工具，请安装 gnome-screenshot\n"
                         "或使用系统快捷键截图后粘贴。"
                     )
+                    self._screenshot_mode = False
                     self.show()
                     return
 
         except (OSError, RuntimeError) as e:
+            self._screenshot_mode = False
             QMessageBox.critical(self, "错误", f"截图工具启动失败: {str(e)}")
             self.show()
 
     def process_screenshot(self, image):
         """处理截图结果（由 ClipboardMonitor 自动回调）"""
-        if not self.isMinimized():
-            print("process_screenshot：窗口可见，忽略非截图的图片复制操作。")
+        if not self._screenshot_mode:
+            print("process_screenshot：非截屏模式，忽略剪贴板变化。")
             return
+
+        self._screenshot_mode = False
 
         try:
             self.show()
             self.activateWindow()
+            self.setWindowState(QtCore.Qt.WindowActive)
 
             self.img_path = os.path.join(BASE_DIR, "screenshot.png")
             image.save(self.img_path, "PNG")
