@@ -107,6 +107,73 @@ class ClipboardMonitor(QObject):
             print(f"剪贴板检测失败: {str(e)}")
 
 
+class ScreenshotOverlay(QtWidgets.QWidget):
+    """全屏半透明覆盖层，用户拖拽选区截取屏幕区域"""
+
+    captured = pyqtSignal(QtGui.QPixmap)  # 选区截图完成信号
+
+    def __init__(self, screen_pixmap, parent=None):
+        super().__init__(parent)
+        self.screen_pixmap = screen_pixmap
+        self.origin = None
+        self.selection = None
+
+        # 全屏、无边框、置顶
+        self.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+        )
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.setWindowState(Qt.WindowFullScreen)
+        self.setCursor(Qt.CrossCursor)
+        self.show()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        # 画屏幕截图
+        painter.drawPixmap(0, 0, self.screen_pixmap)
+
+        if self.origin and self.selection:
+            # 暗化非选区
+            painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, 120))
+            # 选区内显示原始截图
+            painter.drawPixmap(self.selection, self.screen_pixmap, self.selection)
+            # 选区边框
+            pen = QtGui.QPen(QtGui.QColor("#4f6ef7"), 2, Qt.DashLine)
+            painter.setPen(pen)
+            painter.drawRect(self.selection)
+        else:
+            # 未选区时半透明遮罩提示
+            painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, 80))
+            painter.setPen(QtGui.QColor("#ffffff"))
+            font = QtGui.QFont()
+            font.setPointSize(18)
+            painter.setFont(font)
+            painter.drawText(self.rect(), Qt.AlignCenter, "拖拽鼠标框选截图区域\n按 Esc 取消")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.origin = event.pos()
+            self.selection = None
+            self.update()
+
+    def mouseMoveEvent(self, event):
+        if self.origin:
+            self.selection = QtCore.QRect(self.origin, event.pos()).normalized()
+            self.update()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self.selection:
+            if self.selection.width() > 10 and self.selection.height() > 10:
+                # 裁剪选区
+                cropped = self.screen_pixmap.copy(self.selection)
+                self.captured.emit(cropped)
+            self.close()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
+
 class OcrWorker(QObject):
     """OCR 工作线程，负责在后台执行耗时的网络请求"""
     success = pyqtSignal(str)
@@ -561,11 +628,6 @@ class MainWindow(QMainWindow):
         self.ui.helpAction.triggered.connect(self.show_help)
         self.ui.contactAction.triggered.connect(self.show_contact)
 
-        self.clipboard_monitor = ClipboardMonitor(self.process_screenshot)
-
-        # 截屏模式标志
-        self._screenshot_mode = False
-
         # 初始化配置
         self.conf = configparser.ConfigParser()
         self.conf.read(os.path.join(BASE_DIR, 'config.ini'), encoding="utf-8-sig")
@@ -752,68 +814,46 @@ window.MathJax = {{
         self.load_image(self.img_path)
 
     def capture_screenshot(self):
-        """跨平台截图功能，最小化窗口后调用系统截图工具"""
+        """直接截图：抓取全屏 → 弹出选区覆盖层 → 用户框选 → 获取截图"""
         try:
-            self._screenshot_mode = True
+            # 先最小化窗口，避免截到自身
             self.setWindowState(QtCore.Qt.WindowMinimized)
-            current_os = platform.system()
+            QtCore.QCoreApplication.processEvents()
+            # 等待窗口最小化完成
+            QtCore.QThread.msleep(200)
 
-            if current_os == "Windows":
-                self.clipboard_monitor.start_monitoring()
-                subprocess.run('start ms-screenclip:', shell=True, check=False)
-            elif current_os == "Darwin":  # macOS
-                self.clipboard_monitor.start_monitoring()
-                subprocess.run(['screencapture', '-i', '-c'], check=False)
-            else:  # Linux
-                # 尝试使用 gnome-screenshot，如不可用则提示用户
-                try:
-                    self.clipboard_monitor.start_monitoring()
-                    subprocess.run(['gnome-screenshot', '-a'], check=False)
-                except FileNotFoundError:
-                    self._screenshot_mode = False
-                    self.clipboard_monitor.stop_monitoring()
-                    QMessageBox.warning(
-                        self, "提示",
-                        "未找到截图工具，请安装 gnome-screenshot\n"
-                        "或使用系统快捷键截图后粘贴。"
-                    )
-                    self.show()
-                    return
+            # 抓取主屏幕全屏截图
+            screen = QApplication.primaryScreen()
+            if screen:
+                self._full_screenshot = screen.grabWindow(0)
+            else:
+                self._full_screenshot = QtGui.QPixmap()
 
-        except (OSError, RuntimeError) as e:
-            self._screenshot_mode = False
-            self.clipboard_monitor.stop_monitoring()
-            QMessageBox.critical(self, "错误", f"截图工具启动失败: {str(e)}")
+            if self._full_screenshot.isNull():
+                self.show()
+                QMessageBox.warning(self, "提示", "截图失败，无法获取屏幕内容")
+                return
+
+            # 弹出选区覆盖层
+            self._overlay = ScreenshotOverlay(self._full_screenshot)
+            self._overlay.captured.connect(self._on_screenshot_captured)
+
+        except Exception as e:
             self.show()
+            QMessageBox.critical(self, "错误", f"截图失败: {str(e)}")
 
-    def process_screenshot(self, image):
-        """处理截图结果（由 ClipboardMonitor 自动回调）"""
-        if not self._screenshot_mode:
-            print("process_screenshot：非截屏模式，忽略剪贴板变化。")
-            return
+    def _on_screenshot_captured(self, pixmap):
+        """选区截图完成回调"""
+        self.show()
+        self.activateWindow()
+        self.setWindowState(QtCore.Qt.WindowActive)
 
-        self._screenshot_mode = False
-        self.clipboard_monitor.stop_monitoring()
+        self.img_path = os.path.join(BASE_DIR, "screenshot.png")
+        pixmap.save(self.img_path, "PNG")
 
-        try:
-            self.show()
-            self.activateWindow()
-            self.setWindowState(QtCore.Qt.WindowActive)
-
-            self.img_path = os.path.join(BASE_DIR, "screenshot.png")
-            image.save(self.img_path, "PNG")
-
-            self.load_image(self.img_path)
-            # 不再清空剪贴板 — 基线hash已防止重复检测
-            print(f"截图已保存到: {self.img_path}")
-            self.recognize_formula()
-
-        except (IOError, ValueError, RuntimeError) as e:
-            self.clipboard_monitor.stop_monitoring()
-            QMessageBox.critical(self, "错误", f"截图处理失败: {str(e)}")
-            self.show()
-            self.activateWindow()
-            self.set_ui_enabled(True)
+        self.load_image(self.img_path)
+        print(f"截图已保存到: {self.img_path}")
+        self.recognize_formula()
 
     def show_help(self):
         """显示帮助文档"""
