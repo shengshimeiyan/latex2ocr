@@ -22,10 +22,24 @@
 
 ### 2 使用教程
 
-#### 2.1 安装依赖
+#### 2.1 快速开始（免安装）
+
+前往 [Releases 页面](https://github.com/shengshimeiyan/latex2ocr/releases) 下载最新版本：
+
+| 文件 | 说明 |
+|------|------|
+| `latex2ocr-setup-vX.X.X.exe` | 安装包，双击安装后使用（推荐） |
+| `latex2ocr-vX.X.X.exe` | 便携版，下载后直接双击运行，无需安装 |
+
+> ⚠️ 首次运行若被 Windows 拦截，请点击「更多信息」→「仍要运行」。使用安装包版本可降低拦截概率。
+
+安装或运行后，进入设置填写 API Key 即可使用，详见下方 2.4 配置说明。
+
+#### 2.2 从源码运行
 
 ```bash
 pip install -r requirements.txt
+python main_v108.py
 ```
 
 主要依赖：
@@ -41,7 +55,7 @@ pip install -r requirements.txt
 | pyperclip | 剪贴板操作 |
 | ratelimit | API 调用速率限制 |
 
-#### 2.2 获取 API Key（必需）
+#### 2.3 获取 API Key（必需）
 
 根据需要选择一个或多个模型，申请对应的 API Key：
 
@@ -53,7 +67,7 @@ pip install -r requirements.txt
 | GPT-5.5 等 | [AIHubMix](https://aihubmix.com/) | 需翻墙 |
 | GPT | [OpenAI](https://openai.com/index/openai-api/) | 需付费，需翻墙 |
 
-#### 2.3 配置 API Key
+#### 2.4 配置 API Key
 
 1. 运行程序：
 
