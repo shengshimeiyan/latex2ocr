@@ -337,11 +337,13 @@ class MainWindowUI(object):
         image_card = QtWidgets.QFrame(self.centralwidget)
         image_card.setObjectName("card")
         image_layout = QtWidgets.QVBoxLayout(image_card)
-        image_layout.setContentsMargins(4, 2, 4, 2)
+        image_layout.setContentsMargins(6, 2, 6, 2)
         image_layout.setSpacing(0)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
         image_header.setObjectName("section_header")
+        image_header.setContentsMargins(8, 0, 0, 0)
+        image_header.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         image_layout.addWidget(image_header)
 
         self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
@@ -356,11 +358,13 @@ class MainWindowUI(object):
         latex_card = QtWidgets.QFrame(self.centralwidget)
         latex_card.setObjectName("card")
         latex_layout = QtWidgets.QVBoxLayout(latex_card)
-        latex_layout.setContentsMargins(4, 2, 4, 2)
+        latex_layout.setContentsMargins(6, 2, 6, 2)
         latex_layout.setSpacing(0)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
         latex_header.setObjectName("section_header")
+        latex_header.setContentsMargins(8, 0, 0, 0)
+        latex_header.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         latex_layout.addWidget(latex_header)
 
         self.latexWebView = QtWebEngineWidgets.QWebEngineView(latex_card)
@@ -382,7 +386,7 @@ class MainWindowUI(object):
         code_card = QtWidgets.QFrame(self.centralwidget)
         code_card.setObjectName("card")
         code_layout = QtWidgets.QVBoxLayout(code_card)
-        code_layout.setContentsMargins(4, 2, 4, 2)
+        code_layout.setContentsMargins(6, 2, 6, 2)
         code_layout.setSpacing(0)
 
         code_header_layout = QtWidgets.QHBoxLayout()
@@ -390,6 +394,8 @@ class MainWindowUI(object):
 
         code_label = QtWidgets.QLabel("📝 LaTeX 代码", code_card)
         code_label.setObjectName("section_header")
+        code_label.setContentsMargins(0, 0, 0, 0)
+        code_label.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         code_header_layout.addWidget(code_label)
 
         code_header_layout.addStretch()
