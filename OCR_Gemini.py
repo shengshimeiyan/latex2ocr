@@ -2,6 +2,7 @@
 from google import genai
 from google.genai import types as genai_types
 import os
+import sys
 from openai import OpenAI
 import base64
 import configparser
@@ -34,7 +35,11 @@ def encode_image_to_base64(image_path):
 class GeminiFormulaRecognizer:
     def __init__(self, api_key=None, model_name=None):
         self.conf = configparser.ConfigParser()
-        self.conf.read(os.path.join(os.path.dirname(__file__), 'config.ini'), encoding="utf-8-sig")
+        if getattr(sys, 'frozen', False):
+            config_dir = os.path.dirname(sys.executable)
+        else:
+            config_dir = os.path.dirname(__file__)
+        self.conf.read(os.path.join(config_dir, 'config.ini'), encoding="utf-8-sig")
         self.api_key = api_key or self.conf.get('API_Gemini', 'APIKey', fallback='')
         self.model_name = model_name or 'gemini-2.0-flash'
         self.client = None

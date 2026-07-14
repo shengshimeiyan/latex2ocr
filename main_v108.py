@@ -23,7 +23,11 @@ from matplotlib import pyplot as plt
 from Init_Window_v105 import MainWindowUI
 from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, DeepSeekFormulaRecognizer
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# PyInstaller --onefile 兼容：优先使用 exe 所在目录，否则用脚本目录
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class ClipboardMonitor(QObject):
