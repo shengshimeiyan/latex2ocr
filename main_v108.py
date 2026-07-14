@@ -110,61 +110,37 @@ class OcrWorker(QObject):
     success = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, img_path, model_name, conf):
+    def __init__(self, img_path, section_name, conf):
         super().__init__()
         self.img_path = img_path
-        self.model_name = model_name
+        self.section_name = section_name
         self.conf = conf
 
     def run_ocr(self):
-        """在工作线程中执行的函数"""
+        """在工作线程中执行的函数 — 根据 config.ini section 动态选择识别器"""
         try:
-            result = ""
-            if self.model_name == "Google Gemini":
-                section = 'API_Gemini'
-                api_key = self.conf.get(section, 'APIKey', fallback='')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='gemini-2.0-flash')
-                if not api_key:
-                    raise ValueError("请先配置Gemini API Key")
-                recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name_conf)
-                result = recognizer.recognize_formula(self.img_path)
+            section = self.section_name
+            recognizer_type = self.conf.get(section, 'Recognizer', fallback='openai').lower()
+            api_key = self.conf.get(section, 'APIKey', fallback='')
+            api_base = self.conf.get(section, 'APIBase', fallback='')
+            model_name = self.conf.get(section, 'ModelName', fallback='')
+            display_name = self.conf.get(section, 'DisplayName', fallback=section)
 
-            elif self.model_name == "GPT":
-                section = 'API_GPT'
-                api_key = self.conf.get(section, 'APIKey', fallback='')
-                api_base = self.conf.get(section, 'APIBase', fallback=None)
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='gpt-4o-mini')
-                if not api_key:
-                    raise ValueError("请先配置 GPT API Key")
-                recognizer = GPTFormulaRecognizer(api_key, api_base, model_name=model_name_conf)
-                result = recognizer.recognize_formula(self.img_path)
+            if not api_key:
+                raise ValueError(f"请先配置 {display_name} 的 API Key")
 
-            elif self.model_name == "DeepSeek":
-                section = 'API_DeepSeek'
-                api_key = self.conf.get(section, 'APIKey', fallback='')
-                base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='Pro/deepseek-ai/deepseek-vl2')
-                if not api_key:
-                    raise ValueError("请先配置DeepSeek-VL2 API Key")
-                recognizer = DeepSeekFormulaRecognizer(api_key, base_url, model_name=model_name_conf)
-                result = recognizer.recognize_formula(self.img_path)
-
-            elif self.model_name == "Qwen3-VL":
-                section = 'API_QWen'
-                api_key = self.conf.get(section, 'APIKey', fallback='')
-                base_url = self.conf.get(section, 'APIBase', fallback='https://api.siliconflow.cn/v1')
-                model_name_conf = self.conf.get(section, 'ModelName', fallback='Qwen/Qwen3-VL-8B-Instruct')
-                if not api_key:
-                    raise ValueError("请先配置 QWen API Key")
-                recognizer = DeepSeekFormulaRecognizer(api_key, base_url, model_name=model_name_conf)
-                result = recognizer.recognize_formula(self.img_path)
-
-            elif self.model_name == "讯飞API":
+            if recognizer_type == 'gemini':
+                recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name)
+            elif recognizer_type == 'openai':
+                recognizer = DeepSeekFormulaRecognizer(api_key, api_base, model_name=model_name)
+            elif recognizer_type == 'gpt':
+                recognizer = GPTFormulaRecognizer(api_key, api_base, model_name=model_name)
+            elif recognizer_type == 'ifly':
                 raise NotImplementedError("讯飞API识别尚未实现")
-
             else:
-                raise ValueError(f"未知的模型: {self.model_name}")
+                raise ValueError(f"未知的识别器类型: {recognizer_type}")
 
+            result = recognizer.recognize_formula(self.img_path)
             self.success.emit(result)
 
         except Exception as e:
@@ -176,28 +152,27 @@ class ApiTestWorker(QObject):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, provider, api_key, api_base, model_name):
+    def __init__(self, recognizer_type, api_key, api_base, model_name, display_name=""):
         super().__init__()
-        self.provider = provider
+        self.recognizer_type = recognizer_type
         self.api_key = api_key
         self.api_base = api_base
         self.model_name = model_name
+        self.display_name = display_name
 
     def run_test(self):
         try:
-            if self.provider == "Google Gemini":
+            if self.recognizer_type == 'gemini':
                 recognizer = GeminiFormulaRecognizer(self.api_key, model_name=self.model_name)
-            elif self.provider == "GPT":
+            elif self.recognizer_type == 'gpt':
                 recognizer = GPTFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            elif self.provider == "DeepSeek":
+            elif self.recognizer_type == 'openai':
                 recognizer = DeepSeekFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            elif self.provider == "Qwen3-VL":
-                recognizer = DeepSeekFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            elif self.provider == "讯飞API":
+            elif self.recognizer_type == 'ifly':
                 self.error.emit("讯飞API测试尚未实现")
                 return
             else:
-                self.error.emit(f"未知的模型 {self.provider}")
+                self.error.emit(f"未知的识别器类型: {self.recognizer_type}")
                 return
 
             recognizer.test_connection()
@@ -208,78 +183,78 @@ class ApiTestWorker(QObject):
 
 
 class SettingsDialog(QDialog):
-    """模型参数设置对话框 - 深色主题"""
+    """模型参数设置对话框 - 白色主题，动态模型列表"""
 
     DIALOG_STYLE = """
         QDialog {
-            background-color: #1a1b2e;
+            background-color: #f5f6fa;
         }
         QLabel {
-            color: #c8c8e0;
-            font-size: 13px;
+            color: #333344;
+            font-size: 15px;
         }
         QLineEdit {
-            background-color: #1e1f38;
-            color: #e0e0f0;
-            border: 1px solid #3a3c66;
+            background-color: #ffffff;
+            color: #1a1a2e;
+            border: 1px solid #d8d8e3;
             border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 13px;
-            selection-background-color: #4a4c88;
+            padding: 10px 14px;
+            font-size: 15px;
+            selection-background-color: #dce0ff;
         }
         QLineEdit:focus {
-            border-color: #6c5ce7;
+            border-color: #4f6ef7;
         }
         QLineEdit::placeholder {
-            color: #555580;
+            color: #a0a0b8;
         }
         QComboBox {
-            background-color: #2d2f52;
-            color: #c8c8e0;
-            border: 1px solid #3a3c66;
+            background-color: #ffffff;
+            color: #333344;
+            border: 1px solid #d8d8e3;
             border-radius: 8px;
-            padding: 8px 14px;
-            min-width: 200px;
-            font-size: 13px;
+            padding: 10px 14px;
+            min-width: 220px;
+            font-size: 15px;
         }
-        QComboBox:hover { border-color: #5a5caa; }
+        QComboBox:hover { border-color: #4f6ef7; }
         QComboBox::drop-down { border: none; width: 28px; }
         QComboBox::down-arrow {
             image: none; border-left: 5px solid transparent;
-            border-right: 5px solid transparent; border-top: 6px solid #8888bb;
+            border-right: 5px solid transparent; border-top: 6px solid #8888aa;
             margin-right: 8px;
         }
         QComboBox QAbstractItemView {
-            background-color: #2d2f52; color: #c8c8e0;
-            border: 1px solid #3a3c66; border-radius: 8px;
-            selection-background-color: #4a4c88; selection-color: #ffffff;
+            background-color: #ffffff; color: #333344;
+            border: 1px solid #d8d8e3; border-radius: 8px;
+            selection-background-color: #eef0ff; selection-color: #1a1a2e;
             outline: none; padding: 4px;
         }
         QPushButton {
-            background-color: #2d2f52; color: #c8c8e0;
-            border: 1px solid #3a3c66; border-radius: 8px;
-            padding: 8px 20px; font-size: 13px; font-weight: 500;
+            background-color: #ffffff; color: #333344;
+            border: 1px solid #d8d8e3; border-radius: 8px;
+            padding: 10px 24px; font-size: 15px; font-weight: 500;
         }
-        QPushButton:hover { background-color: #3a3c66; color: #ffffff; }
-        QPushButton:pressed { background-color: #4a4c88; }
+        QPushButton:hover { background-color: #f0f0f8; color: #1a1a2e; border-color: #b0b0cc; }
+        QPushButton:pressed { background-color: #e8e8f0; }
         QPushButton#save_btn {
             background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #6c5ce7, stop:1 #a855f7);
+                stop:0 #4f6ef7, stop:1 #6c5ce7);
             color: #ffffff; border: none;
         }
         QPushButton#save_btn:hover {
             background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #7c6cf7, stop:1 #b865ff);
+                stop:0 #5f7eff, stop:1 #7c6cf7);
         }
         QPushButton#test_btn {
-            background-color: transparent; color: #6c5ce7;
-            border: 1px solid #6c5ce7;
+            background-color: transparent; color: #4f6ef7;
+            border: 1px solid #4f6ef7;
         }
         QPushButton#test_btn:hover {
-            background-color: #2d2f52; color: #a855f7;
+            background-color: #f0f0f8; color: #3b5ce7;
         }
         QPushButton#test_btn:disabled {
-            color: #555570; border-color: #2a2a44;
+            color: #b0b0c0; border-color: #d8d8e3;
         }
     """
 
@@ -287,7 +262,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.parent = parent
         self.setWindowTitle("⚙ 模型参数设置")
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(560)
         self.setStyleSheet(self.DIALOG_STYLE)
 
         self.thread = None
@@ -296,12 +271,10 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout()
         form_layout = QFormLayout()
 
+        # 动态模型列表 — 从 config.ini 读取所有 API_ section
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["Google Gemini", "GPT", "DeepSeek", "Qwen3-VL", "讯飞API"])
-
-        current_main_model = self.parent.ui.model_selector.currentText()
-        if current_main_model in [self.model_combo.itemText(i) for i in range(self.model_combo.count())]:
-             self.model_combo.setCurrentText(current_main_model)
+        self._section_names = []  # 保存 section 名，与 combo index 对应
+        self._populate_model_combo()
 
         form_layout.addRow("配置对象:", self.model_combo)
 
@@ -346,18 +319,32 @@ class SettingsDialog(QDialog):
     def load_settings(self):
         self.update_api_fields()
 
-    def _get_section_name(self, provider_name=None):
-        if not provider_name:
-            provider_name = self.model_combo.currentText()
+    def _populate_model_combo(self):
+        """从 config.ini 动态读取所有 API_ section，填充下拉框"""
+        self.model_combo.clear()
+        self._section_names = []
+        conf = self.parent.conf
+        current_main_model = self.parent.ui.model_selector.currentText()
 
-        section_map = {
-            "Google Gemini": "API_Gemini",
-            "GPT": "API_GPT",
-            "DeepSeek": "API_DeepSeek",
-            "Qwen3-VL": "API_QWen",
-            "讯飞API": "API_iFLY",
-        }
-        return section_map.get(provider_name, "API_DEFAULT")
+        for section in conf.sections():
+            if section.startswith('API_'):
+                display_name = conf.get(section, 'DisplayName', fallback=section.replace('API_', ''))
+                self.model_combo.addItem(display_name)
+                self._section_names.append(section)
+
+        # 尝试选中主窗口当前选择的模型
+        for i, section in enumerate(self._section_names):
+            display_name = conf.get(section, 'DisplayName', fallback='')
+            if display_name == current_main_model:
+                self.model_combo.setCurrentIndex(i)
+                break
+
+    def _get_section_name(self):
+        """获取当前选中模型对应的 config.ini section 名"""
+        idx = self.model_combo.currentIndex()
+        if 0 <= idx < len(self._section_names):
+            return self._section_names[idx]
+        return "API_DEFAULT"
 
     def update_api_fields(self):
         section = self._get_section_name()
@@ -395,16 +382,21 @@ class SettingsDialog(QDialog):
             self.status_label.setText("状态: 错误 - 请先输入API密钥")
             return
 
+        section = self._get_section_name()
+        recognizer_type = self.parent.conf.get(section, 'Recognizer', fallback='openai').lower()
+        display_name = self.parent.conf.get(section, 'DisplayName', fallback=section)
+
         self.test_btn.setEnabled(False)
         self.save_btn.setEnabled(False)
-        self.status_label.setText("状态: 正在测试连接...")
+        self.status_label.setText(f"状态: 正在测试 {display_name} 连接...")
 
         self.thread = QThread()
         self.worker = ApiTestWorker(
-            provider=self.model_combo.currentText(),
+            recognizer_type=recognizer_type,
             api_key=api_key,
             api_base=self.api_base_edit.text(),
-            model_name=self.model_name_edit.text()
+            model_name=self.model_name_edit.text(),
+            display_name=display_name
         )
         self.worker.moveToThread(self.thread)
 
@@ -477,6 +469,9 @@ class MainWindow(QMainWindow):
         self.conf = configparser.ConfigParser()
         self.conf.read(os.path.join(BASE_DIR, 'config.ini'), encoding="utf-8-sig")
 
+        # 动态加载模型下拉框 — 只显示有 API Key 的模型
+        self._load_models_from_config()
+
         self.img_path = None
 
         # 用于存储原始的高清 Pixmap
@@ -514,11 +509,48 @@ class MainWindow(QMainWindow):
             self.ui.imageLabel.clear()
 
     def resizeEvent(self, event):
-        """覆盖 QMainWindow 的 resizeEvent"""
+        """覆盖 QMainWindow 的 resizeEvent — 自适应字号 + 更新图片"""
         super(MainWindow, self).resizeEvent(event)
         self.update_pixmaps()
+        self._update_font_sizes()
 
-    def formula2img(self, str_latex, out_file, img_size=(5, 3), font_size=22):
+    def _load_models_from_config(self):
+        """从 config.ini 动态加载模型到下拉框 — 只显示有 API Key 的模型"""
+        self.ui.model_selector.clear()
+        self._model_sections = {}  # display_name -> section_name
+
+        for section in self.conf.sections():
+            if section.startswith('API_'):
+                api_key = self.conf.get(section, 'APIKey', fallback='')
+                display_name = self.conf.get(section, 'DisplayName', fallback=section.replace('API_', ''))
+                if api_key:  # 有 API Key 才显示
+                    self.ui.model_selector.addItem(display_name)
+                    self._model_sections[display_name] = section
+
+        # 如果没有可用模型，提示用户配置
+        if self.ui.model_selector.count() == 0:
+            self.ui.model_selector.addItem("⚠ 请先配置 API Key")
+            self.ui.model_selector.setEnabled(False)
+        else:
+            self.ui.model_selector.setEnabled(True)
+
+    def _update_font_sizes(self):
+        """根据窗口宽度动态调整字号 — 基准: 960px 宽度 = 16px"""
+        base_width = 960
+        scale = max(0.75, min(1.5, self.width() / base_width))
+
+        # 主编辑框字号
+        edit_font = self.ui.plain_text_edit.font()
+        edit_font.setPointSize(max(12, int(16 * scale)))
+        self.ui.plain_text_edit.setFont(edit_font)
+
+        # 状态标签字号
+        status_size = max(11, int(14 * scale))
+        self.ui.Copy_Status_Label.setStyleSheet(
+            f"color: #4f6ef7; font-size: {status_size}px; padding: 4px 8px;"
+        )
+
+    def formula2img(self, str_latex, out_file, img_size=(8, 4), font_size=40):
         """将LaTeX公式渲染为图片文件
 
         优先使用 matplotlib 的 mathtext 渲染，若失败则直接显示纯文本。
@@ -682,7 +714,9 @@ class MainWindow(QMainWindow):
     def open_settings(self):
         """打开设置对话框，配置API参数和模型选择"""
         dialog = SettingsDialog(self)
-        dialog.exec_()
+        result = dialog.exec_()
+        # 设置关闭后刷新模型下拉框
+        self._load_models_from_config()
 
     def recognize_formula(self):
         """根据选择的模型识别公式（启动工作线程）"""
@@ -695,14 +729,20 @@ class MainWindow(QMainWindow):
             return
 
         self.set_ui_enabled(False)
-        model = self.ui.model_selector.currentText()
-        self.ui.plain_text_edit.setPlainText(f"正在使用 {model} 识别...")
+        model_display = self.ui.model_selector.currentText()
+        section_name = self._model_sections.get(model_display, '')
+        if not section_name:
+            QMessageBox.warning(self, "提示", "请先配置有效的模型 API Key")
+            self.set_ui_enabled(True)
+            return
+
+        self.ui.plain_text_edit.setPlainText(f"正在使用 {model_display} 识别...")
         QApplication.processEvents()
 
         self.ocr_thread = QThread()
         self.ocr_worker = OcrWorker(
             img_path=self.img_path,
-            model_name=model,
+            section_name=section_name,
             conf=self.conf
         )
         self.ocr_worker.moveToThread(self.ocr_thread)

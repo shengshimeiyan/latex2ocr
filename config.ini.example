@@ -2,23 +2,33 @@
 APIBase = 
 APIKey = 
 ModelName = gemini-2.0-flash
+DisplayName = Google Gemini
+Recognizer = gemini
 
 [API_GPT]
 APIBase = 
 APIKey = 
 ModelName = gpt-4o-mini
+DisplayName = GPT
+Recognizer = openai
 
 [API_DeepSeek]
 APIBase = https://api.siliconflow.cn/v1
 APIKey = 
 ModelName = Pro/deepseek-ai/deepseek-vl2
+DisplayName = DeepSeek
+Recognizer = openai
 
 [API_QWen]
 APIBase = https://api.siliconflow.cn/v1
 APIKey = 
 ModelName = Qwen/Qwen3-VL-8B-Instruct
+DisplayName = Qwen3-VL
+Recognizer = openai
 
 [API_iFLY]
 APPID = 
 APISecret = 
 APIKey = 
+DisplayName = 讯飞API
+Recognizer = ifly
