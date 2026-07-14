@@ -189,15 +189,15 @@ class OpenAICompatibleRecognizer:
             raise RuntimeError(f"({self.model_name}) 识别错误: {str(e)}")
 
 
-class DeepSeekFormulaRecognizer(OpenAICompatibleRecognizer):
-    """DeepSeek-VL2 公式识别器"""
+class OpenAIVisionRecognizer(OpenAICompatibleRecognizer):
+    """OpenAI 兼容视觉模型识别器（DeepSeek / Qwen / AIHubMix 等通用）"""
 
     def __init__(self, api_key, base_url=None, model_name=None):
         super().__init__(
             api_key=api_key,
             base_url=base_url,
             model_name=model_name,
-            default_model='Pro/deepseek-ai/deepseek-vl2'
+            default_model='gpt-4o-mini'
         )
 
 

@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from Init_Window_v105 import MainWindowUI
-from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, DeepSeekFormulaRecognizer, GLMFormulaRecognizer
+from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, OpenAIVisionRecognizer, GLMFormulaRecognizer
 
 # PyInstaller --onefile 兼容：优先使用 exe 所在目录，否则用脚本目录
 if getattr(sys, 'frozen', False):
@@ -59,13 +59,8 @@ class ScreenshotOverlay(QtWidgets.QWidget):
             painter.setPen(pen)
             painter.drawRect(self.selection)
         else:
-            # 未选区时半透明遮罩提示
+            # 未选区时轻微暗化
             painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, 80))
-            painter.setPen(QtGui.QColor("#ffffff"))
-            font = QtGui.QFont()
-            font.setPointSize(18)
-            painter.setFont(font)
-            painter.drawText(self.rect(), Qt.AlignCenter, "拖拽鼠标框选截图区域\n按 Esc 取消")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -118,7 +113,7 @@ class OcrWorker(QObject):
             if recognizer_type == 'gemini':
                 recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name)
             elif recognizer_type == 'openai':
-                recognizer = DeepSeekFormulaRecognizer(api_key, api_base, model_name=model_name)
+                recognizer = OpenAIVisionRecognizer(api_key, api_base, model_name=model_name)
             elif recognizer_type == 'gpt':
                 recognizer = GPTFormulaRecognizer(api_key, api_base, model_name=model_name)
             elif recognizer_type == 'ifly':
@@ -387,7 +382,7 @@ class SettingsDialog(QDialog):
             self.parent.conf.set(section, 'APIKey', self.api_key_edit.text())
             self.parent.conf.set(section, 'ModelName', self.model_name_edit.text())
             self.parent.conf.set(section, 'DisplayName', self.model_combo.currentText())
-            self.parent.conf.set(section, 'Recognizer', self.recognizer_combo.currentText())
+            self.parent.conf.set(section, 'Recognizer', self.recognizer_combo.currentText().lower())
 
             with open(os.path.join(BASE_DIR, 'config.ini'), 'w', encoding='utf-8') as f:
                 self.parent.conf.write(f)
@@ -471,9 +466,9 @@ class SettingsDialog(QDialog):
             self.status_label.setText("状态: 错误 - 请先输入API密钥")
             return
 
-        section = self._get_section_name()
-        recognizer_type = self.parent.conf.get(section, 'Recognizer', fallback='openai').lower()
-        display_name = self.parent.conf.get(section, 'DisplayName', fallback=section)
+        # 使用表单当前值（而非配置文件中的旧值）
+        recognizer_type = self.recognizer_combo.currentText().lower()
+        display_name = self.model_combo.currentText()
 
         self.test_btn.setEnabled(False)
         self.save_btn.setEnabled(False)
@@ -567,6 +562,70 @@ class MainWindow(QMainWindow):
         # 持有对 OCR 线程的引用
         self.ocr_thread = None
         self.ocr_worker = None
+
+        # 启用拖拽
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        """拖拽进入时，接受包含图片或文件的事件"""
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                if url.toLocalFile().lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                    event.acceptProposedAction()
+                    return
+        if event.mimeData().hasImage():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        """拖拽释放时，加载图片"""
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                    self._load_image_file(path)
+                    return
+        if event.mimeData().hasImage():
+            pixmap = QtGui.QPixmap.fromImage(event.mimeData().imageData())
+            if not pixmap.isNull():
+                self.img_path = os.path.join(BASE_DIR, "clipboard_paste.png")
+                pixmap.save(self.img_path, "PNG")
+                self.load_image(self.img_path)
+
+    def keyPressEvent(self, event):
+        """Ctrl+V 粘贴剪贴板中的图片"""
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_V:
+            clipboard = QApplication.clipboard()
+            mime = clipboard.mimeData()
+            if mime.hasImage():
+                pixmap = QtGui.QPixmap.fromImage(mime.imageData())
+                if not pixmap.isNull():
+                    self.img_path = os.path.join(BASE_DIR, "clipboard_paste.png")
+                    pixmap.save(self.img_path, "PNG")
+                    self.load_image(self.img_path)
+                    return
+        super().keyPressEvent(event)
+
+    def _load_image_file(self, path):
+        """加载图片文件（含大小校验）"""
+        try:
+            file_size = os.path.getsize(path)
+            if file_size > 4 * 1024 * 1024:
+                QMessageBox.warning(self, "提示", f"图片大小为 {file_size / 1024 / 1024:.1f}MB，超过 4MB 限制。")
+                return
+        except OSError:
+            QMessageBox.warning(self, "提示", "无法读取图片文件，请检查路径。")
+            return
+
+        try:
+            from PIL import Image
+            with Image.open(path) as img:
+                img.verify()
+        except Exception:
+            QMessageBox.warning(self, "提示", "无法识别该文件为有效图片，请重新选择。")
+            return
+
+        self.img_path = path
+        self.load_image(path)
 
     def load_image(self, image_path):
         """加载图片并保持比例显示"""
@@ -699,40 +758,10 @@ window.MathJax = {{
         self.ui.latexWebView.setHtml(html)
 
     def upload_image(self):
-        """处理用户上传图片操作，包含文件校验"""
-        path = QFileDialog.getOpenFileName(self, "选择文件", ".", "公式图片 (*.png *.bmp *.jpg)")
-
-        self.img_path = path[0]
-        if not self.img_path:
-            return
-
-        # 校验文件大小（4MB 限制）
-        try:
-            file_size = os.path.getsize(self.img_path)
-            if file_size > 4 * 1024 * 1024:
-                QMessageBox.warning(
-                    self, "提示",
-                    f"图片大小为 {file_size / 1024 / 1024:.1f}MB，超过 4MB 限制。\n"
-                    "请压缩图片后重试。"
-                )
-                self.img_path = None
-                return
-        except OSError:
-            QMessageBox.warning(self, "提示", "无法读取图片文件，请检查路径。")
-            self.img_path = None
-            return
-
-        # 校验是否为有效图片
-        try:
-            from PIL import Image
-            with Image.open(self.img_path) as img:
-                img.verify()
-        except Exception:
-            QMessageBox.warning(self, "提示", "无法识别该文件为有效图片，请重新选择。")
-            self.img_path = None
-            return
-
-        self.load_image(self.img_path)
+        """处理用户上传图片操作"""
+        path = QFileDialog.getOpenFileName(self, "选择文件", ".", "公式图片 (*.png *.bmp *.jpg)")[0]
+        if path:
+            self._load_image_file(path)
 
     def capture_screenshot(self):
         """直接截图：抓取全屏 → 弹出选区覆盖层 → 用户框选 → 获取截图"""
