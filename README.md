@@ -4,18 +4,21 @@
 
 **轻量级开源公式 OCR 小工具：调用大模型一键识别公式图片，并转换为 LaTeX 格式。**
 
-基于 [QC-Formula](https://github.com/QingchenWait/QC-Formula) 修改，支持 DeepSeek-VL2、Google Gemini、GPT、Qwen3-VL 等大模型。
+基于 [QC-Formula](https://github.com/QingchenWait/QC-Formula) 修改，支持 GLM-4.6V-Flash、Google Gemini、GPT、Qwen3-VL、AIHubMix 等大模型。
 
 - 支持从 **电脑本地** 导入公式图片，或使用 **截屏识别** 功能直接截图；
 - 公式图片支持 **.png** / **.jpg** / **.bmp**，大小为 **4M** 以内均可；
 - 支持**印刷体**及**手写体**，前者识别效果更佳；
-- 识别结果自动复制到剪贴板，并渲染为 LaTeX 公式预览；
-- OCR 识别在后台线程执行，界面不卡顿。
+- 识别结果自动复制到剪贴板，并渲染为 LaTeX 公式预览（MathJax）；
+- OCR 识别在后台线程执行，界面不卡顿；
+- 支持自定义添加/删除模型，动态模型选择。
 
 ### 1 软件架构
 
-- 软件基于 `Python 3.7+` 开发，界面基于 `PyQt5`，项目 **完全开源**。
-- 软件在 Windows 10 测试通过，macOS / Linux 平台截屏功能可能需要适配。
+- 软件基于 `Python 3.10+` 开发，界面基于 `PyQt5`，项目 **完全开源**。
+- 公式预览基于 `QWebEngineView` + MathJax 3 渲染，支持完整 LaTeX 语法。
+- 截屏功能基于 `QScreen.grabWindow` + 全屏覆盖层拖选，无需外部工具。
+- 软件在 Windows 10/11 测试通过，macOS / Linux 平台截屏功能可能需要适配。
 
 ### 2 使用教程
 
@@ -31,9 +34,10 @@ pip install -r requirements.txt
 
 | 模型 | API 来源 | 说明 |
 |------|----------|------|
-| DeepSeek-VL2 | [SiliconFlow 硅基流动](https://cloud.siliconflow.cn/models) | 注册送 14 元，无需翻墙 |
-| Qwen3-VL | [SiliconFlow 硅基流动](https://cloud.siliconflow.cn/models) | 注册送 14 元，无需翻墙 |
+| GLM-4.6V-Flash | [智谱 BigModel](https://open.bigmodel.cn/) | 免费额度，国内直连 |
+| Qwen3-VL | [SiliconFlow 硅基流动](https://cloud.siliconflow.cn/models) | 注册送额度，国内直连 |
 | Google Gemini | [Google AI Studio](https://aistudio.google.com/) | 免费额度，需翻墙 |
+| GPT-5.5 等 | [AIHubMix](https://aihubmix.com/) | 需翻墙 |
 | GPT | [OpenAI](https://openai.com/index/openai-api/) | 需付费，需翻墙 |
 
 #### 2.3 配置 API Key
@@ -52,14 +56,17 @@ pip install -r requirements.txt
 
 5. 点击 **「保存设置」**，配置将写入 `config.ini` 文件。
 
+6. 也可点击 **「➕」** 按钮添加自定义模型。
+
 各模型的默认配置参考：
 
-| 模型 | API 地址 | 模型名称 |
-|------|----------|----------|
-| DeepSeek | `https://api.siliconflow.cn/v1` | `Pro/deepseek-ai/deepseek-vl2` |
-| Qwen3-VL | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` |
-| Google Gemini | （留空） | `gemini-2.0-flash` |
-| GPT | （留空或自定义） | `gpt-4o-mini` |
+| 模型 | API 地址 | 模型名称 | 识别器类型 |
+|------|----------|----------|-----------|
+| GLM-4.6V-Flash | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | glm |
+| Qwen3-VL | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | openai |
+| AIHubMix | `https://aihubmix.com/v1` | `gpt-5.5-free` | openai |
+| Google Gemini | （留空） | `gemini-2.0-flash` | gemini |
+| GPT | （留空或自定义） | `gpt-4o-mini` | gpt |
 
 ### 3 开发说明
 
@@ -69,22 +76,28 @@ pip install -r requirements.txt
 latex2ocr/
 ├── main_v108.py           # 主程序（推荐使用）
 ├── main_v105.py           # 旧版主程序（API Key 硬编码，不推荐）
-├── OCR_Gemini.py          # OCR 后端，包含 Gemini / DeepSeek / GPT 识别器
+├── OCR_Gemini.py          # OCR 后端，包含 Gemini / DeepSeek / GPT / GLM 识别器
 ├── Init_Window_v105.py    # PyQt5 GUI 界面定义
 ├── config.ini             # API 配置文件（首次运行后自动生成）
+├── config.ini.example     # API 配置模板
 ├── requirements.txt       # Python 依赖列表
+├── setup.iss              # Inno Setup 安装包脚本
 ├── .gitignore             # Git 忽略规则
 └── README.md
 ```
 
 #### 3.2 核心类说明
 
-- **`MainWindow`**（main_v108.py）：主窗口，管理 UI 交互、截屏、剪贴板监控。
+- **`MainWindow`**（main_v108.py）：主窗口，管理 UI 交互、截屏、公式渲染。
+- **`ScreenshotOverlay`**（main_v108.py）：全屏截图覆盖层，拖选区域截图。
 - **`OcrWorker`**（main_v108.py）：OCR 工作线程，在后台执行 API 调用，避免 UI 冻结。
-- **`ClipboardMonitor`**（main_v108.py）：剪贴板监控，检测截图后自动触发识别。
-- **`GeminiFormulaRecognizer`**（OCR_Gemini.py）：Gemini 模型识别器，支持 `model_name` 参数。
-- **`DeepSeekFormulaRecognizer`**（OCR_Gemini.py）：DeepSeek / Qwen3-VL 识别器（OpenAI 兼容接口），支持 `model_name` 参数。
-- **`GPTFormulaRecognizer`**（OCR_Gemini.py）：GPT 模型识别器，支持 `model_name` 参数。
+- **`ApiTestWorker`**（main_v108.py）：API 连接测试工作线程。
+- **`SettingsDialog`**（main_v108.py）：模型参数设置对话框，支持动态添加/删除模型。
+- **`GeminiFormulaRecognizer`**（OCR_Gemini.py）：Gemini 模型识别器。
+- **`OpenAICompatibleRecognizer`**（OCR_Gemini.py）：OpenAI 兼容接口基类，供 DeepSeek / Qwen / AIHubMix 复用。
+- **`DeepSeekFormulaRecognizer`**（OCR_Gemini.py）：DeepSeek / Qwen3-VL 识别器。
+- **`GPTFormulaRecognizer`**（OCR_Gemini.py）：GPT 模型识别器。
+- **`GLMFormulaRecognizer`**（OCR_Gemini.py）：智谱 GLM 视觉模型识别器，支持 JWT 鉴权。
 
 #### 3.3 依赖配置
 
@@ -99,15 +112,25 @@ pip install -r requirements.txt
 | 包名 | 用途 |
 |------|------|
 | PyQt5 | GUI 界面 |
+| PyQtWebEngine | QWebEngineView 公式渲染 |
 | Pillow | 图片处理 |
 | google-genai | Gemini API |
-| openai | DeepSeek / GPT API（OpenAI 兼容） |
-| matplotlib | LaTeX 公式渲染为图片 |
+| openai | DeepSeek / GPT / GLM / Qwen API（OpenAI 兼容） |
+| httpx | HTTP 客户端（API 调用） |
 | pyperclip | 剪贴板操作 |
-| pyautogui / psutil / pygetwindow | 截屏辅助 |
 | ratelimit | API 调用速率限制 |
 
-#### 3.4 调试方法
+#### 3.4 打包发布
+
+```bash
+# PyInstaller 打包
+pyinstaller --onefile --windowed --name latex2ocr main_v108.py
+
+# Inno Setup 安装包
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+```
+
+#### 3.5 调试方法
 
 运行主程序：
 
@@ -119,7 +142,7 @@ python main_v108.py
 
 ### 4 已知问题
 
-- **截屏功能仅支持 Windows**：使用 `ms-screenclip:` 协议调用系统截图工具，macOS / Linux 需要适配。
+- **MathJax CDN 需要网络**：公式预览依赖 CDN 加载 MathJax，离线环境需本地部署。
 - **讯飞 API 尚未实现**：界面中保留了讯飞 API 选项，但功能尚未完成。
 - **复杂公式识别准确率不高**：结构特别复杂的公式，识别效果可能不理想。
 - **请勿使用 Windows 记事本编辑 config.ini**：记事本默认 ANSI 编码会导致读取中文路径时 `UnicodeDecodeError`。请使用支持 UTF-8 编码的编辑器（如 VS Code、Notepad++）。
@@ -132,3 +155,7 @@ python main_v108.py
 2. 新建 Feat_xxx 分支
 3. 提交代码
 4. 新建 Pull Request
+
+### 6 许可证
+
+MIT License
