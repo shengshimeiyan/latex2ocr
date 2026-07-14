@@ -158,13 +158,87 @@ class ApiTestWorker(QObject):
 
 
 class SettingsDialog(QDialog):
-    """模型参数设置对话框"""
+    """模型参数设置对话框 - 深色主题"""
+
+    DIALOG_STYLE = """
+        QDialog {
+            background-color: #1a1b2e;
+        }
+        QLabel {
+            color: #c8c8e0;
+            font-size: 13px;
+        }
+        QLineEdit {
+            background-color: #1e1f38;
+            color: #e0e0f0;
+            border: 1px solid #3a3c66;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            selection-background-color: #4a4c88;
+        }
+        QLineEdit:focus {
+            border-color: #6c5ce7;
+        }
+        QLineEdit::placeholder {
+            color: #555580;
+        }
+        QComboBox {
+            background-color: #2d2f52;
+            color: #c8c8e0;
+            border: 1px solid #3a3c66;
+            border-radius: 8px;
+            padding: 8px 14px;
+            min-width: 200px;
+            font-size: 13px;
+        }
+        QComboBox:hover { border-color: #5a5caa; }
+        QComboBox::drop-down { border: none; width: 28px; }
+        QComboBox::down-arrow {
+            image: none; border-left: 5px solid transparent;
+            border-right: 5px solid transparent; border-top: 6px solid #8888bb;
+            margin-right: 8px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #2d2f52; color: #c8c8e0;
+            border: 1px solid #3a3c66; border-radius: 8px;
+            selection-background-color: #4a4c88; selection-color: #ffffff;
+            outline: none; padding: 4px;
+        }
+        QPushButton {
+            background-color: #2d2f52; color: #c8c8e0;
+            border: 1px solid #3a3c66; border-radius: 8px;
+            padding: 8px 20px; font-size: 13px; font-weight: 500;
+        }
+        QPushButton:hover { background-color: #3a3c66; color: #ffffff; }
+        QPushButton:pressed { background-color: #4a4c88; }
+        QPushButton#save_btn {
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #6c5ce7, stop:1 #a855f7);
+            color: #ffffff; border: none;
+        }
+        QPushButton#save_btn:hover {
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #7c6cf7, stop:1 #b865ff);
+        }
+        QPushButton#test_btn {
+            background-color: transparent; color: #6c5ce7;
+            border: 1px solid #6c5ce7;
+        }
+        QPushButton#test_btn:hover {
+            background-color: #2d2f52; color: #a855f7;
+        }
+        QPushButton#test_btn:disabled {
+            color: #555570; border-color: #2a2a44;
+        }
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
-        self.setWindowTitle("模型参数设置")
-        self.setMinimumWidth(500)
+        self.setWindowTitle("⚙ 模型参数设置")
+        self.setMinimumWidth(520)
+        self.setStyleSheet(self.DIALOG_STYLE)
 
         self.thread = None
         self.worker = None
@@ -196,11 +270,13 @@ class SettingsDialog(QDialog):
 
         self.model_combo.currentTextChanged.connect(self.update_api_fields)
 
-        self.test_btn = QPushButton("测试连接")
+        self.test_btn = QPushButton("🔗 测试连接")
+        self.test_btn.setObjectName("test_btn")
         self.test_btn.clicked.connect(self.test_connection)
 
         button_layout = QHBoxLayout()
-        self.save_btn = QPushButton("保存设置")
+        self.save_btn = QPushButton("💾 保存设置")
+        self.save_btn.setObjectName("save_btn")
         self.save_btn.clicked.connect(self.save_settings)
         cancel_btn = QPushButton("取消")
         cancel_btn.clicked.connect(self.reject)
