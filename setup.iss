@@ -22,7 +22,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 
 ; 安装目录
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName=D:\{#MyAppName}
 DefaultGroupName={#MyAppName}
 
 ; 输出
