@@ -9,6 +9,7 @@ from PIL import ImageGrab
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QObject, QTimer, QThread, pyqtSignal
 from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QMessageBox, QSizePolicy,
@@ -803,7 +804,7 @@ window.MathJax = {{
             image.save(self.img_path, "PNG")
 
             self.load_image(self.img_path)
-            QApplication.clipboard().clear()
+            # 不再清空剪贴板 — 基线hash已防止重复检测
             print(f"截图已保存到: {self.img_path}")
             self.recognize_formula()
 

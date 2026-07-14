@@ -28,6 +28,7 @@ QLabel#section_header {
     border: none;
     padding: 0px;
     margin: 0px;
+    line-height: 1;
 }
 
 /* ---------- 顶部工具栏 ---------- */
@@ -337,6 +338,7 @@ class MainWindowUI(object):
         image_card.setObjectName("card")
         image_layout = QtWidgets.QVBoxLayout(image_card)
         image_layout.setContentsMargins(4, 2, 4, 2)
+        image_layout.setSpacing(0)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
         image_header.setObjectName("section_header")
@@ -355,6 +357,7 @@ class MainWindowUI(object):
         latex_card.setObjectName("card")
         latex_layout = QtWidgets.QVBoxLayout(latex_card)
         latex_layout.setContentsMargins(4, 2, 4, 2)
+        latex_layout.setSpacing(0)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
         latex_header.setObjectName("section_header")
@@ -380,6 +383,7 @@ class MainWindowUI(object):
         code_card.setObjectName("card")
         code_layout = QtWidgets.QVBoxLayout(code_card)
         code_layout.setContentsMargins(4, 2, 4, 2)
+        code_layout.setSpacing(0)
 
         code_header_layout = QtWidgets.QHBoxLayout()
         code_header_layout.setContentsMargins(8, 2, 8, 0)
