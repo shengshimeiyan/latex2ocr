@@ -573,9 +573,11 @@ class MainWindow(QMainWindow):
 
         self.img_path = None
 
-        # 用于存储原始的高清 Pixmap
-        self.latex_pixmap = None
+        # 用于存储原始的高清 Pixmap（图片预览用）
         self.source_pixmap = None
+
+        # 初始公式预览占位
+        self.render_latex_preview("")
 
         # 持有对 OCR 线程的引用
         self.ocr_thread = None
@@ -588,16 +590,7 @@ class MainWindow(QMainWindow):
         self.update_pixmaps()
 
     def update_pixmaps(self):
-        """根据标签的当前大小重新缩放并设置 Pixmap"""
-        if self.latex_pixmap:
-            self.ui.latexLabel.setPixmap(self.latex_pixmap.scaled(
-                self.ui.latexLabel.size(),
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
-            ))
-        else:
-            self.ui.latexLabel.clear()
-
+        """根据标签的当前大小重新缩放并设置图片 Pixmap"""
         if self.source_pixmap:
             self.ui.imageLabel.setPixmap(self.source_pixmap.scaled(
                 self.ui.imageLabel.size(),
@@ -649,45 +642,68 @@ class MainWindow(QMainWindow):
             f"color: #4f6ef7; font-size: {status_size}px; padding: 4px 8px;"
         )
 
-    def formula2img(self, str_latex, out_file, img_size=(10, 5), font_size=56):
-        """将LaTeX公式渲染为图片文件
+    def _build_mathjax_html(self, latex_str):
+        """生成包含 MathJax 渲染的 HTML 页面"""
+        # 转义 HTML 特殊字符
+        escaped = latex_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {{
+    margin: 0; padding: 20px;
+    background: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    font-family: "Times New Roman", serif;
+  }}
+  .formula {{
+    font-size: 28px;
+    color: #1a1a2e;
+    text-align: center;
+    padding: 10px;
+  }}
+  .placeholder {{
+    color: #a0a0b8;
+    font-size: 18px;
+    font-family: sans-serif;
+  }}
+</style>
+<script>
+window.MathJax = {{
+  tex: {{
+    inlineMath: [['$', '$']],
+    displayMath: [['$$', '$$']],
+    processEscapes: true
+  }},
+  svg: {{ fontCache: 'global' }},
+  startup: {{
+    ready: () => {{
+      MathJax.startup.defaultReady();
+    }}
+  }}
+}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="formula">${escaped}$</div>
+</body>
+</html>"""
 
-        优先使用 matplotlib 的 mathtext 渲染，若失败则直接显示纯文本。
-        """
-        try:
-            str_latex = str_latex.strip().strip('$$')
-            str_latex_wrapped = f"${str_latex}$"
-
-            fig = plt.figure(figsize=img_size)
-            ax = fig.add_axes([0, 0, 1, 1])
-            ax.set_axis_off()
-
-            ax.text(0.5, 0.5, str_latex_wrapped, fontsize=font_size,
-                    verticalalignment='center', horizontalalignment='center')
-
-            plt.savefig(
-                out_file,
-                bbox_inches='tight',
-                pad_inches=0.1,
-                dpi=300,
-                transparent=True
+    def render_latex_preview(self, latex_str):
+        """用 MathJax 渲染公式到 WebEngineView"""
+        if not latex_str or not latex_str.strip():
+            self.ui.latexWebView.setHtml(
+                '<html><body style="margin:0;padding:20px;background:#fff;'
+                'display:flex;align-items:center;justify-content:center;min-height:100vh;">'
+                '<div style="color:#a0a0b8;font-size:18px;font-family:sans-serif;">识别结果将在此渲染</div>'
+                '</body></html>'
             )
-            plt.close(fig)
-
-            self.latex_pixmap = QPixmap(out_file)
-            # 检查渲染结果是否有效（matplotlib 渲染失败时可能输出空白图片）
-            if self.latex_pixmap.width() <= 1 or self.latex_pixmap.height() <= 1:
-                raise ValueError("渲染结果为空白图片")
-            self.ui.latexLabel.setAlignment(Qt.AlignCenter)
-            self.update_pixmaps()
-
-        except Exception as e:
-            print(f"LaTeX 渲染失败（{e}），回退为纯文本显示")
-            plt.close('all')
-            self.latex_pixmap = None
-            self.ui.latexLabel.setText(str_latex)
-            self.ui.latexLabel.setAlignment(Qt.AlignCenter)
-            self.update_pixmaps()
+            return
+        html = self._build_mathjax_html(latex_str.strip().strip('$'))
+        self.ui.latexWebView.setHtml(html)
 
     def upload_image(self):
         """处理用户上传图片操作，包含文件校验"""
@@ -873,8 +889,8 @@ class MainWindow(QMainWindow):
         pyperclip.copy(result_latex)
         self.ui.Copy_Status_Label.setText("识别成功，结果已自动复制！")
 
-        print("正在生成 LaTeX 公式图片...")
-        self.formula2img(result_latex, os.path.join(BASE_DIR, "temp_latex.png"))
+        print("正在渲染 LaTeX 公式预览...")
+        self.render_latex_preview(result_latex)
 
         self.set_ui_enabled(True)
         self.activateWindow()

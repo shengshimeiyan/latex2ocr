@@ -6,6 +6,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QFont, QIcon
+from PyQt5 import QtWebEngineWidgets
 
 
 # ============ 全局样式表 ============
@@ -284,7 +285,7 @@ class MainWindowUI(object):
         # ====== 顶部工具栏 ======
         toolbar_frame = QtWidgets.QFrame(self.centralwidget)
         toolbar_frame.setObjectName("toolbar")
-        toolbar_frame.setFixedHeight(78)
+        toolbar_frame.setMinimumHeight(52)
         self.top_button_layout = QtWidgets.QHBoxLayout(toolbar_frame)
         self.top_button_layout.setContentsMargins(18, 10, 18, 10)
         self.top_button_layout.setSpacing(12)
@@ -325,10 +326,10 @@ class MainWindowUI(object):
         image_card = QtWidgets.QFrame(self.centralwidget)
         image_card.setObjectName("card")
         image_layout = QtWidgets.QVBoxLayout(image_card)
-        image_layout.setContentsMargins(4, 4, 4, 4)
+        image_layout.setContentsMargins(4, 2, 4, 2)
 
         image_header = QtWidgets.QLabel("📷 图片预览", image_card)
-        image_header.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
+        image_header.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; padding: 2px 8px; background: transparent; border: none;")
         image_layout.addWidget(image_header)
 
         self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
@@ -343,17 +344,16 @@ class MainWindowUI(object):
         latex_card = QtWidgets.QFrame(self.centralwidget)
         latex_card.setObjectName("card")
         latex_layout = QtWidgets.QVBoxLayout(latex_card)
-        latex_layout.setContentsMargins(4, 4, 4, 4)
+        latex_layout.setContentsMargins(4, 2, 4, 2)
 
         latex_header = QtWidgets.QLabel("✨ 公式预览", latex_card)
-        latex_header.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; padding: 6px 12px; background: transparent; border: none;")
+        latex_header.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; padding: 2px 8px; background: transparent; border: none;")
         latex_layout.addWidget(latex_header)
 
-        self.latexLabel = QtWidgets.QLabel("识别结果将在此渲染", latex_card)
-        self.latexLabel.setObjectName("latexLabel")
-        self.latexLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.latexLabel.setMinimumSize(380, 200)
-        latex_layout.addWidget(self.latexLabel)
+        self.latexWebView = QtWebEngineWidgets.QWebEngineView(latex_card)
+        self.latexWebView.setMinimumSize(380, 200)
+        self.latexWebView.setStyleSheet("background: #ffffff; border: none;")
+        latex_layout.addWidget(self.latexWebView, stretch=1)
 
         self.previewLayout.addWidget(latex_card, stretch=1)
 
@@ -369,13 +369,13 @@ class MainWindowUI(object):
         code_card = QtWidgets.QFrame(self.centralwidget)
         code_card.setObjectName("card")
         code_layout = QtWidgets.QVBoxLayout(code_card)
-        code_layout.setContentsMargins(4, 4, 4, 4)
+        code_layout.setContentsMargins(4, 2, 4, 2)
 
         code_header_layout = QtWidgets.QHBoxLayout()
-        code_header_layout.setContentsMargins(12, 8, 12, 0)
+        code_header_layout.setContentsMargins(8, 2, 8, 0)
 
         code_label = QtWidgets.QLabel("📝 LaTeX 代码", code_card)
-        code_label.setStyleSheet("color: #8888aa; font-size: 26px; font-weight: 600; background: transparent; border: none;")
+        code_label.setStyleSheet("color: #8888aa; font-size: 22px; font-weight: 600; background: transparent; border: none;")
         code_header_layout.addWidget(code_label)
 
         code_header_layout.addStretch()
