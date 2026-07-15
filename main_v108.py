@@ -778,7 +778,7 @@ window.MathJax = {{
             self._load_image_file(path)
 
     def capture_screenshot(self):
-        """直接截图：抓取全屏 → 弹出选区覆盖层 → 用户框选 → 获取截图"""
+        """截图：抓取所有屏幕拼接为虚拟桌面 → 弹出选区覆盖层 → 用户框选 → 获取截图"""
         try:
             # 先最小化窗口，避免截到自身
             self.setWindowState(QtCore.Qt.WindowMinimized)
@@ -786,12 +786,31 @@ window.MathJax = {{
             # 等待窗口最小化完成
             QtCore.QThread.msleep(200)
 
-            # 抓取主屏幕全屏截图
-            screen = QApplication.primaryScreen()
-            if screen:
-                self._full_screenshot = screen.grabWindow(0)
-            else:
-                self._full_screenshot = QtGui.QPixmap()
+            # 拼接所有屏幕为一张完整虚拟桌面截图
+            screens = QApplication.screens()
+            if not screens:
+                self.show()
+                QMessageBox.warning(self, "提示", "截图失败，无法获取屏幕内容")
+                return
+
+            # 计算虚拟桌面总范围
+            min_x = min(s.geometry().x() for s in screens)
+            min_y = min(s.geometry().y() for s in screens)
+            max_x = max(s.geometry().x() + s.geometry().width() for s in screens)
+            max_y = max(s.geometry().y() + s.geometry().height() for s in screens)
+            total_w = max_x - min_x
+            total_h = max_y - min_y
+
+            # 创建空白画布，逐屏绘制
+            self._full_screenshot = QtGui.QPixmap(total_w, total_h)
+            self._full_screenshot.fill(Qt.black)
+            painter = QtGui.QPainter(self._full_screenshot)
+            for screen in screens:
+                geo = screen.geometry()
+                grab = screen.grabWindow(0)
+                # 坐标转换到虚拟桌面
+                painter.drawPixmap(geo.x() - min_x, geo.y() - min_y, grab)
+            painter.end()
 
             if self._full_screenshot.isNull():
                 self.show()

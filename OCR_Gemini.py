@@ -67,40 +67,53 @@ class GeminiFormulaRecognizer:
     @sleep_and_retry
     @limits(calls=10, period=60)
     def recognize_formula(self, image_path):
-        """Perform formula recognition with image preprocessing"""
-        try:
-            if not self.client:
-                self.client = genai.Client(api_key=self.api_key)
+        """Perform formula recognition with image preprocessing (auto-retry 2x)"""
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                if not self.client:
+                    self.client = genai.Client(api_key=self.api_key)
 
-            # Preprocess image
-            print("preparing picture...")
-            with Image.open(image_path) as img:
-                img = img.convert('L')  # Convert to grayscale
-                img = img.filter(ImageFilter.SHARPEN)
+                # Preprocess image
+                print("preparing picture...")
+                with Image.open(image_path) as img:
+                    img = img.convert('L')  # Convert to grayscale
+                    img = img.filter(ImageFilter.SHARPEN)
 
-                buffered = BytesIO()
-                img.save(buffered, format="PNG", optimize=True)
-                image_bytes = buffered.getvalue()
+                    buffered = BytesIO()
+                    img.save(buffered, format="PNG", optimize=True)
+                    image_bytes = buffered.getvalue()
 
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=[
-                    FORMULA_RECOGNITION_PROMPT,
-                    genai_types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-                ],
-                config=genai_types.GenerateContentConfig(
-                    safety_settings=[
-                        genai_types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-                        genai_types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-                        genai_types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-                        genai_types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[
+                        FORMULA_RECOGNITION_PROMPT,
+                        genai_types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                     ],
-                ),
-            )
-            return self._process_response(response)
+                    config=genai_types.GenerateContentConfig(
+                        safety_settings=[
+                            genai_types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                            genai_types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                            genai_types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                            genai_types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                        ],
+                    ),
+                )
+                return self._process_response(response)
 
-        except Exception as e:
-            raise RuntimeError(f"API request failed: {str(e)}")
+            except Exception as e:
+                err_msg = str(e)
+                retryable = any(kw in err_msg for kw in [
+                    'timeout', 'Timeout', 'timed out', 'Connection',
+                    'Network', '500', '502', '503', '504', '429',
+                    'rate_limit', 'overloaded', 'RESOURCE_EXHAUSTED',
+                ])
+                if attempt < max_retries and retryable:
+                    wait = (attempt + 1) * 3
+                    print(f"(Gemini) 请求失败，{wait}s 后重试 ({attempt+1}/{max_retries}): {err_msg[:80]}")
+                    time.sleep(wait)
+                    continue
+                raise RuntimeError(f"API request failed: {err_msg}")
 
     def _process_response(self, response):
         """Process and validate API response"""
@@ -159,34 +172,48 @@ class OpenAICompatibleRecognizer:
             raise RuntimeError(f"连接测试失败: {err_msg}")
 
     def recognize_formula(self, image_path):
-        """识别图片中的公式并转换为 LaTeX"""
-        try:
-            base64_image = encode_image_to_base64(image_path)
+        """识别图片中的公式并转换为 LaTeX（自动重试 2 次）"""
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                base64_image = encode_image_to_base64(image_path)
 
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": FORMULA_RECOGNITION_PROMPT},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/png;base64,{base64_image}"}
-                            }
-                        ]
-                    }
-                ],
-                temperature=0.2,
-                max_tokens=1024,
-                stream=False
-            )
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": FORMULA_RECOGNITION_PROMPT},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/png;base64,{base64_image}"}
+                                }
+                            ]
+                        }
+                    ],
+                    temperature=0.2,
+                    max_tokens=1024,
+                    stream=False
+                )
 
-            result = response.choices[0].message.content
-            return result
+                result = response.choices[0].message.content
+                return result
 
-        except Exception as e:
-            raise RuntimeError(f"({self.model_name}) 识别错误: {str(e)}")
+            except Exception as e:
+                err_msg = str(e)
+                # 不可重试的错误（鉴权、参数等），直接抛出
+                retryable = any(kw in err_msg for kw in [
+                    'timeout', 'Timeout', 'timed out', 'Connection',
+                    'Network', '500', '502', '503', '504', '429',
+                    'rate_limit', 'overloaded',
+                ])
+                if attempt < max_retries and retryable:
+                    wait = (attempt + 1) * 3
+                    print(f"({self.model_name}) 请求失败，{wait}s 后重试 ({attempt+1}/{max_retries}): {err_msg[:80]}")
+                    time.sleep(wait)
+                    continue
+                raise RuntimeError(f"({self.model_name}) 识别错误: {err_msg}")
 
 
 class OpenAIVisionRecognizer(OpenAICompatibleRecognizer):
