@@ -8,16 +8,16 @@ echo ========================================
 echo.
 
 REM 检查 Python
-where python >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [错误] 未找到 Python，请先安装 Python 3.7+
+set PYTHON=C:\Users\12608\AppData\Local\Programs\Python\Python312\python.exe
+if not exist "%PYTHON%" (
+    echo [错误] 未找到 Python，请检查路径: %PYTHON%
     pause
     exit /b 1
 )
 
 REM 第1步：PyInstaller 打包（使用 spec 文件，保留 excludes/datas 配置）
 echo [1/2] PyInstaller 打包中...
-python -m PyInstaller latex2ocr.spec --noconfirm
+"%PYTHON%" -m PyInstaller latex2ocr.spec --noconfirm
 if errorlevel 1 (
     echo [错误] PyInstaller 打包失败！
     pause

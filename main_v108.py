@@ -30,6 +30,7 @@ class ScreenshotOverlay(QtWidgets.QWidget):
     """全屏半透明覆盖层，用户拖拽选区截取屏幕区域"""
 
     captured = pyqtSignal(QtGui.QPixmap)  # 选区截图完成信号
+    cancelled = pyqtSignal()              # ESC 取消截图信号
 
     def __init__(self, screen_pixmap, parent=None):
         super().__init__(parent)
@@ -85,6 +86,7 @@ class ScreenshotOverlay(QtWidgets.QWidget):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
+            self.cancelled.emit()
             self.close()
 
 
@@ -538,6 +540,9 @@ class MainWindow(QMainWindow):
         self.ui.recognize_button.clicked.connect(self.recognize_formula)
         self.ui.copy_button.clicked.connect(self.copy_text)
 
+        # 双击公式预览区复制 LaTeX
+        self.ui.latexWebView.installEventFilter(self)
+
         # 绑定关于菜单事件
         self.ui.helpAction.triggered.connect(self.show_help)
         self.ui.contactAction.triggered.connect(self.show_contact)
@@ -610,6 +615,16 @@ class MainWindow(QMainWindow):
                     self.load_image(self.img_path)
                     return
         super().keyPressEvent(event)
+
+    def eventFilter(self, obj, event):
+        """双击公式预览区复制 LaTeX 到剪贴板"""
+        if obj is self.ui.latexWebView and event.type() == QtCore.QEvent.MouseButtonDblClick:
+            text = self.ui.plain_text_edit.toPlainText()
+            if text and not text.startswith("正在使用"):
+                pyperclip.copy(text)
+                self.ui.Copy_Status_Label.setText("已从公式预览区复制")
+            return True
+        return super().eventFilter(obj, event)
 
     def _load_image_file(self, path):
         """加载图片文件（含大小校验）"""
@@ -820,6 +835,7 @@ window.MathJax = {{
             # 弹出选区覆盖层
             self._overlay = ScreenshotOverlay(self._full_screenshot)
             self._overlay.captured.connect(self._on_screenshot_captured)
+            self._overlay.cancelled.connect(self._on_screenshot_cancelled)
 
         except Exception as e:
             self.show()
@@ -837,6 +853,12 @@ window.MathJax = {{
         self.load_image(self.img_path)
         print(f"截图已保存到: {self.img_path}")
         self.recognize_formula()
+
+    def _on_screenshot_cancelled(self):
+        """ESC 取消截图回调 — 恢复窗口"""
+        self.show()
+        self.activateWindow()
+        self.setWindowState(QtCore.Qt.WindowActive)
 
     def show_help(self):
         """显示帮助文档"""
