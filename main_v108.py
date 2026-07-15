@@ -72,6 +72,10 @@ class ScreenshotOverlay(QtWidgets.QWidget):
             self.origin = event.pos()
             self.selection = None
             self.update()
+        elif event.button() == Qt.RightButton:
+            # 右键取消截图
+            self.cancelled.emit()
+            self.close()
 
     def mouseMoveEvent(self, event):
         if self.origin:
@@ -95,6 +99,21 @@ class ScreenshotOverlay(QtWidgets.QWidget):
             self.close()
 
 
+def create_recognizer(recognizer_type, api_key, api_base=None, model_name=None):
+    """工厂方法：根据识别器类型创建对应的识别器实例"""
+    recognizer_type = recognizer_type.lower()
+    if recognizer_type == 'gemini':
+        return GeminiFormulaRecognizer(api_key, model_name=model_name)
+    elif recognizer_type in ('openai', 'gpt'):
+        return OpenAIVisionRecognizer(api_key, api_base, model_name=model_name)
+    elif recognizer_type == 'ifly':
+        raise NotImplementedError("讯飞API识别尚未实现")
+    elif recognizer_type == 'glm':
+        return GLMFormulaRecognizer(api_key, api_base, model_name=model_name)
+    else:
+        raise ValueError(f"未知的识别器类型: {recognizer_type}")
+
+
 class OcrWorker(QObject):
     """OCR 工作线程，负责在后台执行耗时的网络请求"""
     success = pyqtSignal(str)
@@ -110,7 +129,7 @@ class OcrWorker(QObject):
         """在工作线程中执行的函数 — 根据 config.ini section 动态选择识别器"""
         try:
             section = self.section_name
-            recognizer_type = self.conf.get(section, 'Recognizer', fallback='openai').lower()
+            recognizer_type = self.conf.get(section, 'Recognizer', fallback='openai')
             api_key = self.conf.get(section, 'APIKey', fallback='')
             api_base = self.conf.get(section, 'APIBase', fallback='')
             model_name = self.conf.get(section, 'ModelName', fallback='')
@@ -119,17 +138,7 @@ class OcrWorker(QObject):
             if not api_key:
                 raise ValueError(f"请先配置 {display_name} 的 API Key")
 
-            if recognizer_type == 'gemini':
-                recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name)
-            elif recognizer_type in ('openai', 'gpt'):
-                recognizer = OpenAIVisionRecognizer(api_key, api_base, model_name=model_name)
-            elif recognizer_type == 'ifly':
-                raise NotImplementedError("讯飞API识别尚未实现")
-            elif recognizer_type == 'glm':
-                recognizer = GLMFormulaRecognizer(api_key, api_base, model_name=model_name)
-            else:
-                raise ValueError(f"未知的识别器类型: {recognizer_type}")
-
+            recognizer = create_recognizer(recognizer_type, api_key, api_base, model_name)
             result = recognizer.recognize_formula(self.img_path)
             self.success.emit(result)
 
@@ -152,22 +161,12 @@ class ApiTestWorker(QObject):
 
     def run_test(self):
         try:
-            if self.recognizer_type == 'gemini':
-                recognizer = GeminiFormulaRecognizer(self.api_key, model_name=self.model_name)
-            elif self.recognizer_type in ('openai', 'gpt'):
-                recognizer = OpenAIVisionRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            elif self.recognizer_type == 'ifly':
-                self.error.emit("讯飞API测试尚未实现")
-                return
-            elif self.recognizer_type == 'glm':
-                recognizer = GLMFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            else:
-                self.error.emit(f"未知的识别器类型: {self.recognizer_type}")
-                return
-
+            recognizer = create_recognizer(self.recognizer_type, self.api_key, self.api_base, self.model_name)
             recognizer.test_connection()
             self.finished.emit("API连接测试成功!")
 
+        except NotImplementedError:
+            self.error.emit("讯飞API测试尚未实现")
         except Exception as e:
             self.error.emit(f"API连接测试失败:\n{str(e)}")
 
@@ -730,6 +729,10 @@ class MainWindow(QMainWindow):
         # 转义 HTML 特殊字符
         escaped = latex_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
+        # 响应式公式字号
+        scale = max(0.8, min(1.6, self.width() / 960))
+        formula_size = max(18, int(28 * scale))
+
         # 优先使用本地 MathJax，离线也能渲染
         local_mathjax = os.path.join(BASE_DIR, 'mathjax', 'tex-svg.js')
         if os.path.isfile(local_mathjax):
@@ -750,7 +753,7 @@ class MainWindow(QMainWindow):
     font-family: "Times New Roman", serif;
   }}
   .formula {{
-    font-size: 28px;
+    font-size: {formula_size}px;
     color: #1a1a2e;
     text-align: center;
     padding: 10px;
@@ -1083,6 +1086,7 @@ window.MathJax = {{
                 self._history.pop(self._last_history_index)
                 self._save_history()
                 self._refresh_history_combo()
+                self._cleanup_orphan_history_images()
             self._last_history_index = -1
             return
 
@@ -1098,6 +1102,22 @@ window.MathJax = {{
             self._history = []
             self._save_history()
             self._refresh_history_combo()
+            self._cleanup_orphan_history_images()
+
+    def _cleanup_orphan_history_images(self):
+        """清理 history_images 目录中不被任何历史记录引用的图片"""
+        history_dir = os.path.join(BASE_DIR, "history_images")
+        if not os.path.isdir(history_dir):
+            return
+        # 收集历史记录中仍在引用的图片路径
+        referenced = {os.path.normpath(e.get('image', '')) for e in self._history if e.get('image')}
+        try:
+            for f in os.listdir(history_dir):
+                fpath = os.path.normpath(os.path.join(history_dir, f))
+                if fpath not in referenced:
+                    os.remove(fpath)
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':
