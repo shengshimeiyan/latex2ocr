@@ -1,6 +1,8 @@
 import sys
 import os
+import json
 import configparser
+from datetime import datetime
 
 import pyperclip
 from PyQt5 import QtCore
@@ -544,6 +546,10 @@ class MainWindow(QMainWindow):
         self.ui.helpAction.triggered.connect(self.show_help)
         self.ui.contactAction.triggered.connect(self.show_contact)
 
+        # 绑定历史记录事件
+        self.ui.history_combo.currentIndexChanged.connect(self._on_history_selected)
+        self.ui.clear_history_btn.clicked.connect(self._clear_history)
+
         # 初始化配置
         self.conf = configparser.ConfigParser()
         self.conf.read(os.path.join(BASE_DIR, 'config.ini'), encoding="utf-8-sig")
@@ -565,6 +571,10 @@ class MainWindow(QMainWindow):
 
         # 启用拖拽
         self.setAcceptDrops(True)
+
+        # 识别历史记录
+        self._history = []  # [(timestamp, latex, model, image_path), ...]
+        self._load_history()
 
     def dragEnterEvent(self, event):
         """拖拽进入时，接受包含图片或文件的事件"""
@@ -695,9 +705,17 @@ class MainWindow(QMainWindow):
         )
 
     def _build_mathjax_html(self, latex_str):
-        """生成包含 MathJax 渲染的 HTML 页面"""
+        """生成包含 MathJax 渲染的 HTML 页面（优先本地，离线可用）"""
         # 转义 HTML 特殊字符
         escaped = latex_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+        # 优先使用本地 MathJax，离线也能渲染
+        local_mathjax = os.path.join(BASE_DIR, 'mathjax', 'tex-svg.js')
+        if os.path.isfile(local_mathjax):
+            mathjax_src = f'file:///{local_mathjax.replace(os.sep, "/")}'
+        else:
+            mathjax_src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'
+
         return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -737,7 +755,7 @@ window.MathJax = {{
   }}
 }};
 </script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<script src="{mathjax_src}" async></script>
 </head>
 <body>
 <div class="formula">${escaped}$</div>
@@ -892,6 +910,10 @@ window.MathJax = {{
         print("正在渲染 LaTeX 公式预览...")
         self.render_latex_preview(result_latex)
 
+        # 保存到历史记录
+        model_display = self.ui.model_selector.currentText()
+        self._add_history(result_latex, model_display, self.img_path or '')
+
         self.set_ui_enabled(True)
         self.activateWindow()
 
@@ -919,6 +941,89 @@ window.MathJax = {{
         """复制识别结果到剪贴板"""
         pyperclip.copy(self.ui.plain_text_edit.toPlainText())
         self.ui.Copy_Status_Label.setText("结果已复制到剪贴板")
+
+    # ====== 识别历史 ======
+
+    def _history_path(self):
+        """历史记录文件路径"""
+        return os.path.join(BASE_DIR, 'history.json')
+
+    def _load_history(self):
+        """从磁盘加载历史记录"""
+        try:
+            path = self._history_path()
+            if os.path.isfile(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    self._history = json.load(f)
+        except Exception:
+            self._history = []
+        self._refresh_history_combo()
+
+    def _save_history(self):
+        """持久化历史记录到磁盘（最多保留 100 条）"""
+        try:
+            self._history = self._history[:100]
+            with open(self._history_path(), 'w', encoding='utf-8') as f:
+                json.dump(self._history, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    def _add_history(self, latex, model_name, image_path=''):
+        """添加一条历史记录并刷新下拉框"""
+        entry = {
+            'time': datetime.now().strftime('%H:%M:%S'),
+            'latex': latex,
+            'model': model_name,
+            'image': image_path
+        }
+        self._history.insert(0, entry)
+        self._save_history()
+        self._refresh_history_combo()
+
+    def _refresh_history_combo(self):
+        """刷新历史记录下拉框"""
+        combo = self.ui.history_combo
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem("📋 历史记录")
+        for entry in self._history:
+            short = entry['latex'][:40].replace('\n', ' ')
+            combo.addItem(f"{entry['time']} {entry['model']}  {short}…")
+        combo.blockSignals(False)
+
+    def _on_history_selected(self, index):
+        """从历史记录中恢复选中条目"""
+        if index <= 0:
+            return
+        entry = self._history[index - 1]
+        latex = entry['latex']
+        self.ui.plain_text_edit.setPlainText(latex)
+        self.render_latex_preview(latex)
+        pyperclip.copy(latex)
+        self.ui.Copy_Status_Label.setText("已从历史记录恢复并复制")
+        # 恢复图片（如果文件还在）
+        img = entry.get('image', '')
+        if img and os.path.isfile(img):
+            self.img_path = img
+            self.load_image(img)
+        # 重置下拉框显示
+        self.ui.history_combo.blockSignals(True)
+        self.ui.history_combo.setCurrentIndex(0)
+        self.ui.history_combo.blockSignals(False)
+
+    def _clear_history(self):
+        """清空历史记录"""
+        if not self._history:
+            return
+        reply = QMessageBox.question(
+            self, "清空历史",
+            "确定要清空所有识别历史记录吗？",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self._history = []
+            self._save_history()
+            self._refresh_history_combo()
 
 
 if __name__ == '__main__':

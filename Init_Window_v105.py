@@ -444,6 +444,26 @@ class MainWindowUI(object):
 
         self.bottom_button_layout.addStretch()
 
+        # 历史记录下拉框
+        self.history_combo = QtWidgets.QComboBox(bottom_frame)
+        self.history_combo.setMinimumWidth(200)
+        self.history_combo.addItem("📋 历史记录")
+        self.bottom_button_layout.addWidget(self.history_combo)
+
+        # 清空历史按钮
+        self.clear_history_btn = QtWidgets.QPushButton("🗑", bottom_frame)
+        self.clear_history_btn.setFixedWidth(36)
+        self.clear_history_btn.setToolTip("清空历史记录")
+        self.clear_history_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent; color: #8888aa;
+                border: 1px solid transparent; border-radius: 6px;
+                padding: 4px 8px; font-size: 20px;
+            }
+            QPushButton:hover { background-color: #f0f0f8; color: #333344; border-color: #d8d8e3; }
+        """)
+        self.bottom_button_layout.addWidget(self.clear_history_btn)
+
         # 状态标签
         self.Copy_Status_Label = QtWidgets.QLabel("", bottom_frame)
         self.Copy_Status_Label.setObjectName("status_label")

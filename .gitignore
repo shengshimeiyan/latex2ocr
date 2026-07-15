@@ -22,6 +22,8 @@ env/
 screenshot.png
 temp_latex.png
 temp.png
+clipboard_paste.png
+history.json
 
 # Config with user secrets
 config.ini
@@ -31,6 +33,5 @@ config.ini
 Thumbs.db
 
 # PyInstaller
-*.spec
 installer_output/
 *.cer
