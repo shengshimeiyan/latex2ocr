@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import json
 import configparser
 import shutil
@@ -414,7 +415,6 @@ class SettingsDialog(QDialog):
                     return
 
         # 创建新的 section（用名称生成安全的 section 名）
-        import re
         safe_name = re.sub(r'[^a-zA-Z0-9]', '_', name)
         section_name = f"API_Custom_{safe_name}"
 
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
         self.setAcceptDrops(True)
 
         # 识别历史记录
-        self._history = []  # [(timestamp, latex, model, image_path), ...]
+        self._history = []  # [{'time':..., 'latex':..., 'model':..., 'image':...}, ...]
         self._last_history_index = -1  # 上次选中的历史条目索引（用于单条删除）
         self._load_history()
 
@@ -897,9 +897,6 @@ window.MathJax = {{
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.img_path = os.path.join(history_dir, f"screenshot_{ts}.png")
         pixmap.save(self.img_path, "PNG")
-
-        # 同时保存一份到 screenshot.png（兼容旧逻辑）
-        pixmap.save(os.path.join(BASE_DIR, "screenshot.png"), "PNG")
 
         self.load_image(self.img_path)
         print(f"截图已保存到: {self.img_path}")

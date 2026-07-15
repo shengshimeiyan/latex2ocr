@@ -441,7 +441,7 @@ class MainWindowUI(object):
         # 清空历史按钮
         self.clear_history_btn = QtWidgets.QPushButton("🗑", bottom_frame)
         self.clear_history_btn.setFixedWidth(36)
-        self.clear_history_btn.setToolTip("清空历史记录")
+        self.clear_history_btn.setToolTip("删除选中历史 / 清空全部")
         self.clear_history_btn.setStyleSheet("""
             QPushButton {
                 background-color: transparent; color: #8888aa;
