@@ -101,15 +101,18 @@ python main_v108.py
 
 ```
 latex2ocr/
-├── main_v108.py           # 主程序（推荐使用）
-├── main_v105.py           # 旧版主程序（API Key 硬编码，不推荐）
-├── OCR_Gemini.py          # OCR 后端，包含 Gemini / DeepSeek / GPT / GLM 识别器
+├── main_v108.py           # 主程序
+├── OCR_Gemini.py          # OCR 后端，包含 Gemini / OpenAI / GLM 识别器
 ├── Init_Window_v105.py    # PyQt5 GUI 界面定义
 ├── config.ini             # API 配置文件（首次运行后自动生成）
 ├── config.ini.example     # API 配置模板
 ├── requirements.txt       # Python 依赖列表
+├── latex2ocr.spec         # PyInstaller 打包配置
+├── build_exe.bat          # 一键打包脚本
 ├── setup.iss              # Inno Setup 安装包脚本
+├── mathjax/               # MathJax 离线渲染（tex-svg.js）
 ├── .gitignore             # Git 忽略规则
+├── LICENSE                # MIT 许可证
 └── README.md
 ```
 

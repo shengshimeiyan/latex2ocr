@@ -127,16 +127,17 @@ class OpenAICompatibleRecognizer:
 
     def __init__(self, api_key, base_url=None, model_name=None, default_model='gpt-4o-mini'):
         self.api_key = api_key
-        self.base_url = base_url
         self.model_name = model_name or default_model
         # 自动去掉 base_url 末尾的 /chat/completions（用户常误带此路径）
-        clean_url = self.base_url.rstrip('/') if self.base_url else None
+        clean_url = base_url.rstrip('/') if base_url else None
         if clean_url and clean_url.endswith('/chat/completions'):
             clean_url = clean_url[:-len('/chat/completions')]
+        # 保存清理后的 base_url，供子类（如 GLM）重建 client 时使用
+        self.base_url = clean_url
 
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url=clean_url,
+            base_url=self.base_url,
             http_client=httpx.Client(timeout=60.0)
         )
 
@@ -163,13 +164,13 @@ class OpenAICompatibleRecognizer:
             raise RuntimeError(f"连接测试失败: {err_msg}")
 
     def recognize_formula(self, image_path):
-        """识别图片中的公式并转换为 LaTeX（自动重试 2 次）"""
+        """识别图片中的公式并转换为 LaTeX（自动重试 2 次，参数不兼容时降级）"""
         max_retries = 2
         for attempt in range(max_retries + 1):
             try:
                 base64_image = encode_image_to_base64(image_path)
 
-                response = self.client.chat.completions.create(
+                kwargs = dict(
                     model=self.model_name,
                     messages=[
                         {
@@ -183,10 +184,25 @@ class OpenAICompatibleRecognizer:
                             ]
                         }
                     ],
-                    temperature=0.2,
-                    max_tokens=1024,
                     stream=False
                 )
+                # 部分模型不支持 temperature/max_tokens，首次尝试带参数，失败后降级
+                if not getattr(self, '_skip_extra_params', False):
+                    kwargs['temperature'] = 0.2
+                    kwargs['max_tokens'] = 1024
+
+                try:
+                    response = self.client.chat.completions.create(**kwargs)
+                except Exception as param_err:
+                    err_lower = str(param_err).lower()
+                    if any(kw in err_lower for kw in ['unsupported_parameter', 'unsupported param', 'not supported']):
+                        # 参数不兼容，降级为不带 temperature/max_tokens 重试
+                        self._skip_extra_params = True
+                        kwargs.pop('temperature', None)
+                        kwargs.pop('max_tokens', None)
+                        response = self.client.chat.completions.create(**kwargs)
+                    else:
+                        raise
 
                 result = response.choices[0].message.content
                 return result

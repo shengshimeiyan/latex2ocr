@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import configparser
+import shutil
 from datetime import datetime
 
 import pyperclip
@@ -588,12 +589,12 @@ class MainWindow(QMainWindow):
             event.acceptProposedAction()
 
     def dropEvent(self, event):
-        """拖拽释放时，加载图片"""
+        """拖拽释放时，加载图片并自动识别"""
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
                 path = url.toLocalFile()
                 if path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
-                    self._load_image_file(path)
+                    self._load_image_file(path, auto_recognize=True)
                     return
         if event.mimeData().hasImage():
             pixmap = QtGui.QPixmap.fromImage(event.mimeData().imageData())
@@ -601,9 +602,10 @@ class MainWindow(QMainWindow):
                 self.img_path = os.path.join(BASE_DIR, "clipboard_paste.png")
                 pixmap.save(self.img_path, "PNG")
                 self.load_image(self.img_path)
+                self.recognize_formula()
 
     def keyPressEvent(self, event):
-        """Ctrl+V 粘贴剪贴板中的图片"""
+        """Ctrl+V 粘贴剪贴板中的图片并自动识别"""
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_V:
             clipboard = QApplication.clipboard()
             mime = clipboard.mimeData()
@@ -613,6 +615,7 @@ class MainWindow(QMainWindow):
                     self.img_path = os.path.join(BASE_DIR, "clipboard_paste.png")
                     pixmap.save(self.img_path, "PNG")
                     self.load_image(self.img_path)
+                    self.recognize_formula()
                     return
         super().keyPressEvent(event)
 
@@ -626,8 +629,8 @@ class MainWindow(QMainWindow):
             return True
         return super().eventFilter(obj, event)
 
-    def _load_image_file(self, path):
-        """加载图片文件（含大小校验）"""
+    def _load_image_file(self, path, auto_recognize=False):
+        """加载图片文件（含大小校验），auto_recognize=True 时加载后自动识别"""
         try:
             file_size = os.path.getsize(path)
             if file_size > 4 * 1024 * 1024:
@@ -647,6 +650,8 @@ class MainWindow(QMainWindow):
 
         self.img_path = path
         self.load_image(path)
+        if auto_recognize:
+            self.recognize_formula()
 
     def load_image(self, image_path):
         """加载图片并保持比例显示"""
@@ -847,8 +852,15 @@ window.MathJax = {{
         self.activateWindow()
         self.setWindowState(QtCore.Qt.WindowActive)
 
-        self.img_path = os.path.join(BASE_DIR, "screenshot.png")
+        # 保存到历史图片目录（不会被覆盖，历史记录缩略图可持久化）
+        history_dir = os.path.join(BASE_DIR, "history_images")
+        os.makedirs(history_dir, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.img_path = os.path.join(history_dir, f"screenshot_{ts}.png")
         pixmap.save(self.img_path, "PNG")
+
+        # 同时保存一份到 screenshot.png（兼容旧逻辑）
+        pixmap.save(os.path.join(BASE_DIR, "screenshot.png"), "PNG")
 
         self.load_image(self.img_path)
         print(f"截图已保存到: {self.img_path}")
@@ -1024,8 +1036,10 @@ window.MathJax = {{
         combo.clear()
         combo.addItem("📋 历史记录")
         for entry in self._history:
-            short = entry['latex'][:40].replace('\n', ' ')
-            combo.addItem(f"{entry['time']} {entry['model']}  {short}…")
+            full = entry['latex'].replace('\n', ' ')
+            short = full[:40]
+            suffix = "…" if len(full) > 40 else ""
+            combo.addItem(f"{entry['time']} {entry['model']}  {short}{suffix}")
         combo.blockSignals(False)
 
     def _on_history_selected(self, index):

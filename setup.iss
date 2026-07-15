@@ -110,6 +110,7 @@ Type: files; Name: "{app}\temp_latex.png"
 Type: files; Name: "{app}\temp.png"
 Type: files; Name: "{app}\clipboard_paste.png"
 Type: files; Name: "{app}\history.json"
+Type: filesandordirs; Name: "{app}\history_images"
 
 [Code]
 // 卸载时询问是否保留用户配置（含 API Key）
