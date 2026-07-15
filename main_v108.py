@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
 )
 
 from Init_Window_v105 import MainWindowUI
-from OCR_Gemini import GeminiFormulaRecognizer, GPTFormulaRecognizer, OpenAIVisionRecognizer, GLMFormulaRecognizer
+from OCR_Gemini import GeminiFormulaRecognizer, OpenAIVisionRecognizer, GLMFormulaRecognizer
 
 # PyInstaller --onefile 兼容：优先使用 exe 所在目录，否则用脚本目录
 if getattr(sys, 'frozen', False):
@@ -114,10 +114,8 @@ class OcrWorker(QObject):
 
             if recognizer_type == 'gemini':
                 recognizer = GeminiFormulaRecognizer(api_key, model_name=model_name)
-            elif recognizer_type == 'openai':
+            elif recognizer_type in ('openai', 'gpt'):
                 recognizer = OpenAIVisionRecognizer(api_key, api_base, model_name=model_name)
-            elif recognizer_type == 'gpt':
-                recognizer = GPTFormulaRecognizer(api_key, api_base, model_name=model_name)
             elif recognizer_type == 'ifly':
                 raise NotImplementedError("讯飞API识别尚未实现")
             elif recognizer_type == 'glm':
@@ -149,10 +147,8 @@ class ApiTestWorker(QObject):
         try:
             if self.recognizer_type == 'gemini':
                 recognizer = GeminiFormulaRecognizer(self.api_key, model_name=self.model_name)
-            elif self.recognizer_type == 'gpt':
-                recognizer = GPTFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
-            elif self.recognizer_type == 'openai':
-                recognizer = DeepSeekFormulaRecognizer(self.api_key, self.api_base, model_name=self.model_name)
+            elif self.recognizer_type in ('openai', 'gpt'):
+                recognizer = OpenAIVisionRecognizer(self.api_key, self.api_base, model_name=self.model_name)
             elif self.recognizer_type == 'ifly':
                 self.error.emit("讯飞API测试尚未实现")
                 return

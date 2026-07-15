@@ -121,9 +121,8 @@ latex2ocr/
 - **`ApiTestWorker`**（main_v108.py）：API 连接测试工作线程。
 - **`SettingsDialog`**（main_v108.py）：模型参数设置对话框，支持动态添加/删除模型。
 - **`GeminiFormulaRecognizer`**（OCR_Gemini.py）：Gemini 模型识别器。
-- **`OpenAICompatibleRecognizer`**（OCR_Gemini.py）：OpenAI 兼容接口基类，供 DeepSeek / Qwen / AIHubMix 复用。
-- **`DeepSeekFormulaRecognizer`**（OCR_Gemini.py）：DeepSeek / Qwen3-VL 识别器。
-- **`GPTFormulaRecognizer`**（OCR_Gemini.py）：GPT 模型识别器。
+- **`OpenAICompatibleRecognizer`**（OCR_Gemini.py）：OpenAI 兼容接口基类，供 GPT / DeepSeek / Qwen / AIHubMix 复用。
+- **`OpenAIVisionRecognizer`**（OCR_Gemini.py）：OpenAI 兼容视觉模型识别器，适用于所有 OpenAI 兼容 API（GPT / DeepSeek / Qwen / AIHubMix 等）。
 - **`GLMFormulaRecognizer`**（OCR_Gemini.py）：智谱 GLM 视觉模型识别器，支持 JWT 鉴权。
 
 #### 3.3 调试方法
@@ -138,7 +137,6 @@ python main_v108.py
 
 ### 4 已知问题
 
-- **MathJax CDN 需要网络**：公式预览依赖 CDN 加载 MathJax，离线环境需本地部署。
 - **讯飞 API 尚未实现**：界面中保留了讯飞 API 选项，但功能尚未完成。
 - **复杂公式识别准确率不高**：结构特别复杂的公式，识别效果可能不理想。
 - **请勿使用 Windows 记事本编辑 config.ini**：记事本默认 ANSI 编码会导致读取中文路径时 `UnicodeDecodeError`。请使用支持 UTF-8 编码的编辑器（如 VS Code、Notepad++）。
