@@ -346,7 +346,7 @@ class MainWindowUI(object):
         image_header.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         image_layout.addWidget(image_header)
 
-        self.imageLabel = QtWidgets.QLabel("拖拽或粘贴图片到此处\n或点击「上传图片」「截屏识别」", image_card)
+        self.imageLabel = QtWidgets.QLabel("点击「上传图片」或「截屏识别」\n也可拖拽图片到此处 / Ctrl+V 粘贴", image_card)
         self.imageLabel.setObjectName("imageLabel")
         self.imageLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.imageLabel.setMinimumSize(380, 200)

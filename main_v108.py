@@ -285,8 +285,8 @@ class SettingsDialog(QDialog):
         self.model_name_edit.setPlaceholderText("例如: gpt-4o-mini, Qwen/Qwen3-VL-8B-Instruct")
 
         self.recognizer_combo = QComboBox()
-        self.recognizer_combo.addItems(["openai", "gemini", "gpt", "glm", "ifly"])
-        self.recognizer_combo.setToolTip("openai = OpenAI兼容API (DeepSeek/Qwen/SiliconFlow等)\ngemini = Google Gemini API\ngpt = GPT专用\nglm = 智谱GLM视觉模型\nifly = 讯飞API")
+        self.recognizer_combo.addItems(["openai", "gemini", "glm", "ifly"])
+        self.recognizer_combo.setToolTip("openai = OpenAI兼容API (GPT/DeepSeek/Qwen/SiliconFlow等)\ngemini = Google Gemini API\nglm = 智谱GLM视觉模型\nifly = 讯飞API")
 
         form_layout.addRow("API地址:", self.api_base_edit)
         form_layout.addRow("API密钥:", self.api_key_edit)
@@ -967,7 +967,7 @@ window.MathJax = {{
     def _add_history(self, latex, model_name, image_path=''):
         """添加一条历史记录并刷新下拉框"""
         entry = {
-            'time': datetime.now().strftime('%H:%M:%S'),
+            'time': datetime.now().strftime('%m-%d %H:%M'),
             'latex': latex,
             'model': model_name,
             'image': image_path
