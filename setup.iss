@@ -5,7 +5,7 @@
 ; ============================================================
 
 #define MyAppName "latex2ocr"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "shengshimeiyan"
 #define MyAppURL "https://github.com/shengshimeiyan/latex2ocr"
 #define MyAppExeName "latex2ocr.exe"
@@ -53,7 +53,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=latex2ocr - 轻量级公式 OCR 工具
-VersionInfoCopyright=Copyright (c) 2025 {#MyAppPublisher}
+VersionInfoCopyright=Copyright (c) 2025-2026 {#MyAppPublisher}
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
 
@@ -86,8 +86,10 @@ Name: "desktopicon"; Description: "创建桌面快捷方式(&D)"; GroupDescripti
 [Files]
 ; 主程序
 Source: "dist\latex2ocr.exe"; DestDir: "{app}"; Flags: ignoreversion
+; MathJax（离线公式渲染）
+Source: "mathjax\*"; DestDir: "{app}\mathjax"; Flags: ignoreversion recursesubdirs
 ; 配置文件（仅当用户尚未修改时覆盖，保护已填写的 API Key）
-Source: "dist\config.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist uninsneveruninstall
+Source: "config.ini.example"; DestDir: "{app}"; DestName: "config.ini"; Flags: onlyifdoesntexist uninsneveruninstall
 ; 许可证
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 ; README
@@ -106,6 +108,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: no
 Type: files; Name: "{app}\screenshot.png"
 Type: files; Name: "{app}\temp_latex.png"
 Type: files; Name: "{app}\temp.png"
+Type: files; Name: "{app}\clipboard_paste.png"
+Type: files; Name: "{app}\history.json"
 
 [Code]
 // 卸载时询问是否保留用户配置（含 API Key）
