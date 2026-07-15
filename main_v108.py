@@ -167,6 +167,8 @@ class ApiTestWorker(QObject):
 
         except NotImplementedError:
             self.error.emit("讯飞API测试尚未实现")
+        except ValueError as e:
+            self.error.emit(f"不支持的识别器类型: {self.recognizer_type}")
         except Exception as e:
             self.error.emit(f"API连接测试失败:\n{str(e)}")
 
@@ -701,7 +703,7 @@ class MainWindow(QMainWindow):
             self.ui.model_selector.setEnabled(True)
 
     def _update_font_sizes(self):
-        """根据窗口宽度动态调整字号 — 基准: 960px 宽度 = 16px"""
+        """根据窗口宽度动态调整字号 — 基准: 960px 宽度 = 16pt"""
         base_width = 960
         scale = max(0.8, min(1.6, self.width() / base_width))
 
@@ -723,6 +725,35 @@ class MainWindow(QMainWindow):
         self.ui.Copy_Status_Label.setStyleSheet(
             f"color: #4f6ef7; font-size: {status_size}px; padding: 4px 8px;"
         )
+
+        # 通用按钮字号
+        btn_size = max(14, int(20 * scale))
+        btn_font = QtGui.QFont()
+        btn_font.setPointSize(btn_size)
+        for btn in self.findChildren(QtWidgets.QPushButton):
+            if btn.objectName() not in ('screenshotButton', 'recognize_button'):
+                btn.setFont(btn_font)
+
+        # 主操作按钮字号（稍大）
+        action_size = max(16, int(22 * scale))
+        action_font = QtGui.QFont()
+        action_font.setPointSize(action_size)
+        action_font.setBold(True)
+        self.ui.screenshotButton.setFont(action_font)
+        self.ui.recognize_button.setFont(action_font)
+
+        # 下拉框字号
+        combo_size = max(14, int(18 * scale))
+        combo_font = QtGui.QFont()
+        combo_font.setPointSize(combo_size)
+        self.ui.model_selector.setFont(combo_font)
+        self.ui.history_combo.setFont(combo_font)
+
+        # 预览标签占位文字字号
+        label_size = max(12, int(14 * scale))
+        label_font = QtGui.QFont()
+        label_font.setPointSize(label_size)
+        self.ui.imageLabel.setFont(label_font)
 
     def _build_mathjax_html(self, latex_str):
         """生成包含 MathJax 渲染的 HTML 页面（优先本地，离线可用）"""

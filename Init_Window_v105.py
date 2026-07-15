@@ -46,7 +46,6 @@ QPushButton {
     border: 1px solid #d8d8e3;
     border-radius: 8px;
     padding: 10px 24px;
-    font-size: 28px;
     font-weight: 500;
     min-height: 24px;
 }
@@ -71,7 +70,6 @@ QPushButton#screenshotButton {
     color: #ffffff;
     border: none;
     border-radius: 8px;
-    font-size: 29px;
     font-weight: 600;
     padding: 12px 32px;
 }
@@ -90,7 +88,6 @@ QPushButton#recognize_button {
     color: #ffffff;
     border: none;
     border-radius: 8px;
-    font-size: 29px;
     font-weight: 600;
     padding: 12px 32px;
 }
@@ -111,7 +108,6 @@ QComboBox {
     border-radius: 8px;
     padding: 10px 16px;
     min-width: 160px;
-    font-size: 26px;
 }
 QComboBox:hover {
     border-color: #4f6ef7;
@@ -136,7 +132,6 @@ QComboBox QAbstractItemView {
     selection-color: #1a1a2e;
     outline: none;
     padding: 4px;
-    font-size: 26px;
 }
 
 /* ---------- 卡片容器 ---------- */
@@ -152,14 +147,12 @@ QLabel#imageLabel {
     border: 2px dashed #d0d0dd;
     border-radius: 10px;
     color: #a0a0b8;
-    font-size: 28px;
 }
 QLabel#latexLabel {
     background-color: #fafafc;
     border: 2px dashed #d0d0dd;
     border-radius: 10px;
     color: #a0a0b8;
-    font-size: 28px;
 }
 
 /* ---------- 文本编辑框 ---------- */
@@ -170,14 +163,12 @@ QPlainTextEdit {
     border-radius: 10px;
     padding: 12px 16px;
     font-family: "Consolas", "Fira Code", monospace;
-    font-size: 28px;
     selection-background-color: #dce0ff;
 }
 
 /* ---------- 状态标签 ---------- */
 QLabel#status_label {
     color: #4f6ef7;
-    font-size: 25px;
     padding: 4px 8px;
 }
 
@@ -192,7 +183,6 @@ QPushButton#aboutButton {
     background-color: transparent;
     border: 1px solid transparent;
     color: #8888aa;
-    font-size: 28px;
     padding: 8px 14px;
 }
 QPushButton#aboutButton:hover {
@@ -207,7 +197,6 @@ QPushButton#settingsButton {
     background-color: transparent;
     border: 1px solid transparent;
     color: #8888aa;
-    font-size: 26px;
     padding: 8px 14px;
 }
 QPushButton#settingsButton:hover {
@@ -224,7 +213,6 @@ QMenu {
     border: 1px solid #e8e8ef;
     border-radius: 8px;
     padding: 6px;
-    font-size: 26px;
 }
 QMenu::item {
     padding: 10px 28px;

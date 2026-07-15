@@ -104,11 +104,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; 卸载时清理运行时生成的临时文件
-Type: files; Name: "{app}\screenshot.png"
-Type: files; Name: "{app}\temp_latex.png"
-Type: files; Name: "{app}\temp.png"
-Type: files; Name: "{app}\clipboard_paste.png"
+; 卸载时清理运行时生成的数据文件
 Type: files; Name: "{app}\history.json"
 Type: filesandordirs; Name: "{app}\history_images"
 

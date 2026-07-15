@@ -7,12 +7,16 @@ echo   latex2ocr 一键打包脚本
 echo ========================================
 echo.
 
-REM 检查 Python
+REM 检查 Python：优先使用绝对路径，回退到 PATH 中的 python
 set PYTHON=C:\Users\12608\AppData\Local\Programs\Python\Python312\python.exe
 if not exist "%PYTHON%" (
-    echo [错误] 未找到 Python，请检查路径: %PYTHON%
-    pause
-    exit /b 1
+    where python >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [错误] 未找到 Python，请安装或修改脚本中的 PYTHON 路径
+        pause
+        exit /b 1
+    )
+    set PYTHON=python
 )
 
 REM 第1步：PyInstaller 打包（使用 spec 文件，保留 excludes/datas 配置）
