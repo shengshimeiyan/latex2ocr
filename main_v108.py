@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QLabel, QHBoxLayout, QInputDialog
 )
 
+from PIL import Image as PILImage
 from Init_Window_v105 import MainWindowUI
 from OCR_Gemini import GeminiFormulaRecognizer, OpenAIVisionRecognizer, GLMFormulaRecognizer
 
@@ -78,11 +79,14 @@ class ScreenshotOverlay(QtWidgets.QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton and self.selection:
-            if self.selection.width() > 10 and self.selection.height() > 10:
-                # 裁剪选区
+        if event.button() == Qt.LeftButton:
+            if self.selection and self.selection.width() > 10 and self.selection.height() > 10:
+                # 选区足够大，裁剪并发出截图信号
                 cropped = self.screen_pixmap.copy(self.selection)
                 self.captured.emit(cropped)
+            else:
+                # 选区过小，视为取消
+                self.cancelled.emit()
             self.close()
 
     def keyPressEvent(self, event):
@@ -552,8 +556,9 @@ class MainWindow(QMainWindow):
         self.ui.history_combo.currentIndexChanged.connect(self._on_history_selected)
         self.ui.clear_history_btn.clicked.connect(self._clear_history)
 
-        # 初始化配置
+        # 初始化配置（optionxform=str 保持键名大小写，确保 TitleCase 键名正确读写）
         self.conf = configparser.ConfigParser()
+        self.conf.optionxform = str
         self.conf.read(os.path.join(BASE_DIR, 'config.ini'), encoding="utf-8-sig")
 
         # 动态加载模型下拉框 — 只显示有 API Key 的模型
@@ -576,6 +581,7 @@ class MainWindow(QMainWindow):
 
         # 识别历史记录
         self._history = []  # [(timestamp, latex, model, image_path), ...]
+        self._last_history_index = -1  # 上次选中的历史条目索引（用于单条删除）
         self._load_history()
 
     def dragEnterEvent(self, event):
@@ -641,8 +647,7 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            from PIL import Image
-            with Image.open(path) as img:
+            with PILImage.open(path) as img:
                 img.verify()
         except Exception:
             QMessageBox.warning(self, "提示", "无法识别该文件为有效图片，请重新选择。")
@@ -792,10 +797,10 @@ window.MathJax = {{
         self.ui.latexWebView.setHtml(html)
 
     def upload_image(self):
-        """处理用户上传图片操作"""
+        """处理用户上传图片操作（上传后自动识别）"""
         path = QFileDialog.getOpenFileName(self, "选择文件", ".", "公式图片 (*.png *.bmp *.jpg)")[0]
         if path:
-            self._load_image_file(path)
+            self._load_image_file(path, auto_recognize=True)
 
     def capture_screenshot(self):
         """截图：抓取所有屏幕拼接为虚拟桌面 → 弹出选区覆盖层 → 用户框选 → 获取截图"""
@@ -1046,12 +1051,13 @@ window.MathJax = {{
         """从历史记录中恢复选中条目"""
         if index <= 0:
             return
+        self._last_history_index = index - 1
         entry = self._history[index - 1]
         latex = entry['latex']
         self.ui.plain_text_edit.setPlainText(latex)
         self.render_latex_preview(latex)
         pyperclip.copy(latex)
-        self.ui.Copy_Status_Label.setText("已从历史记录恢复并复制")
+        self.ui.Copy_Status_Label.setText("已从历史记录恢复并复制（🗑 删除此条）")
         # 恢复图片（如果文件还在）
         img = entry.get('image', '')
         if img and os.path.isfile(img):
@@ -1063,7 +1069,24 @@ window.MathJax = {{
         self.ui.history_combo.blockSignals(False)
 
     def _clear_history(self):
-        """清空历史记录"""
+        """删除单条或清空历史记录"""
+        # 如果刚选中过某条历史，则删除该条；否则清空全部
+        if self._last_history_index >= 0 and self._last_history_index < len(self._history):
+            entry = self._history[self._last_history_index]
+            short = entry['latex'][:30].replace('\n', ' ')
+            reply = QMessageBox.question(
+                self, "删除历史",
+                f"确定删除此条记录吗？\n\n{short}…",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self._history.pop(self._last_history_index)
+                self._save_history()
+                self._refresh_history_combo()
+            self._last_history_index = -1
+            return
+
+        self._last_history_index = -1
         if not self._history:
             return
         reply = QMessageBox.question(

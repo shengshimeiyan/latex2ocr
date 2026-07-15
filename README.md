@@ -93,7 +93,7 @@ python main_v108.py
 | Qwen3-VL | `https://api.siliconflow.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | openai |
 | AIHubMix | `https://aihubmix.com/v1` | `gpt-5.5-free` | openai |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `gemini-2.0-flash` | gemini |
-| GPT | `https://api.openai.com/v1` | `gpt-4o-mini` | gpt |
+| GPT | `https://api.openai.com/v1` | `gpt-4o-mini` | openai |
 
 ### 3 开发说明
 

@@ -3,8 +3,11 @@ from google import genai
 from google.genai import types as genai_types
 import os
 import time
+import hmac
+import hashlib
 import httpx
 import base64
+import json
 from openai import OpenAI
 from PIL import Image, ImageFilter
 from io import BytesIO
@@ -147,7 +150,6 @@ class OpenAICompatibleRecognizer:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5
             )
             if response.choices:
                 return True
@@ -253,9 +255,6 @@ class GLMFormulaRecognizer(OpenAICompatibleRecognizer):
     def _generate_token(self):
         """根据 API Key 生成智谱 JWT Token"""
         try:
-            import hmac
-            import hashlib
-
             parts = self._api_key_raw.split('.')
             if len(parts) != 2:
                 return self._api_key_raw
